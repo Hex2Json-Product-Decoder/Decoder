@@ -1,9 +1,9 @@
 /**
-* @description: 处理mqtt接收到的消息
-* @param {any} value - Payload 接收到的消息并且经过解码后的字符串
-* @param {string} msgType - 消息的类型,是订阅消息还是发送消息 'received' or 'publish'
-* @param {number} index - 消息的索引 Index of the message, valid only when script is used in the publish message and timed message is enabled
-* @return {any} - 经过处理后的消息 Payload after script processing
+* @description: default script
+* @param {any} value - Payload
+* @param {string} msgType - Message type, value is 'received' or 'publish'
+* @param {number} index - Index of the message, valid only when script is used in the publish message and timed message is enabled
+* @return {any} - Payload after script processing
 */
 
 var typeCodeArray = ["ibeacon", "eddystone-uid", "eddystone-url", "eddystone-tlm", "bxp-devifo", "bxp-acc", "bxp-th", "bxp-button", "bxp-tag", "pir", "other", "tof"];
@@ -11,8 +11,17 @@ var samplingRateArray = ["1hz", "10hz", "25hz", "50hz", "100hz"];
 var fullScaleArray = ["2g", "4g", "8g", "16g"];
 var frameTypeArray = ["Single press mode", "Double press mode", "Long press mode", "Abnormal"];
 var pirDelayResponseStatusArray = ["Low", "Medium", "High"];
-var fixModeArray = ["Periodic", "Motion", "Downlink"];
+var fixModeNotifyArray = ["Periodic", "Motion", "Downlink"];
 var fixResultArray = ["GPS fix success", "LBS fix success", "Interrupted by Downlink", "GPS serial port is used", "GPS aiding timeout", "GPS timeout", "PDOP limit", "LBS failure"];
+var lowPowerArray = ["10%", "20%", "30%", "40%", "50%"];
+var scannerReportArray = ["Scanner off", "Always scan", "Always scan periodic report", "Periodic scan immediate report", "Periodic scan periodic report"];
+var pirDelayRespStatusArray = ["Low delay", "Medium delay", "High delay", "All type"];
+var pirDoorStatusArray = ["Close", "Open", "All type"];
+var pirSensorSensitivityArray = ["Low sensitivity", "Medium sensitivity", "High sensitivity", "All type"];
+var pirSensorDetactionStatusArray = ["No effective motion detected", "Effective motion detected", "All type"];
+var otherRelationArray = ["A", "A&B", "A|B", "A&B&C", "(A&B)|C", "A|B|C"];
+var filterDuplicateDataRuleArray = ["None", "MAC", "MAC+Data type", "MAC+RAW Data"];
+var fixModeArray = ["OFF", "Periodic fix", "Motion fix"];
 function handlePayload(value, msgType, index) {
     const hexStrArray = toHexStrArray(value);
     var len = hexStrArray.length;
@@ -24,138 +33,1736 @@ function handlePayload(value, msgType, index) {
         var deviceDataArray = hexStrArray.slice(11, len);
         var deviceDataIndex = 0;
         var deviceDataLength = deviceDataArray.length;
-        if (data.flag == '3089' || data.flag == '30b1') {
+        if (data.flag == '2003') {
+            // Device info
+            return parseDevInfo(deviceDataIndex, deviceDataLength, deviceDataArray, data);
+        } else if (data.flag == '3004') {
+            // Device status
+            return parseDevStatus(deviceDataIndex, deviceDataLength, deviceDataArray, data);
+        } else if (data.flag == '3006') {
+            // OTA result
+            return parseOTAResult(deviceDataIndex, deviceDataLength, deviceDataArray, data);
+        } else if (data.flag == '2007') {
+            // NTP Settings
+            return parseNTPSettings(deviceDataIndex, deviceDataLength, deviceDataArray, data);
+        } else if (data.flag == '2008') {
+            // Time
+            return parseTime(deviceDataIndex, deviceDataLength, deviceDataArray, data);
+        } else if (data.flag == '2009') {
+            // Commure timeout
+            return parseCommureTimeout(deviceDataIndex, deviceDataLength, deviceDataArray, data);
+        } else if (data.flag == '200a') {
+            // Indicator
+            return parseIndicator(deviceDataIndex, deviceDataLength, deviceDataArray, data);
+        } else if (data.flag == '200b') {
+            // Cert or OTA status
+            return parseUpdateFileStatus(deviceDataIndex, deviceDataLength, deviceDataArray, data);
+        } else if (data.flag == '200c') {
+            // Report settings
+            return parseReportSettings(deviceDataIndex, deviceDataLength, deviceDataArray, data);
+        } else if (data.flag == '200d') {
+            // Power off notification
+            return parsePowerOffNotify(deviceDataIndex, deviceDataLength, deviceDataArray, data);
+        } else if (data.flag == '200e') {
+            // Ble connect password
+            return parseBleConnectPassword(deviceDataIndex, deviceDataLength, deviceDataArray, data);
+        } else if (data.flag == '200f') {
+            // Password verify
+            return parsePasswordVerify(deviceDataIndex, deviceDataLength, deviceDataArray, data);
+        } else if (data.flag == '3010') {
+            // Power off alarm
+            return parsePowerOffAlarm(deviceDataIndex, deviceDataLength, deviceDataArray, data);
+        } else if (data.flag == '3011') {
+            // Low power alarm
+            return parseLowPowerAlarm(deviceDataIndex, deviceDataLength, deviceDataArray, data);
+        } else if (data.flag == '2012') {
+            // Low power settings
+            return parseLowPower(deviceDataIndex, deviceDataLength, deviceDataArray, data);
+        } else if (data.flag == '2013') {
+            // Battery voltage
+            return parseBattery(deviceDataIndex, deviceDataLength, deviceDataArray, data);
+        } else if (data.flag == '3014') {
+            // Button reset notify
+        } else if (data.flag == '2015') {
+            // Power on enable when charging
+            return parsePowerOn(deviceDataIndex, deviceDataLength, deviceDataArray, data);
+        } else if (data.flag == '2020') {
+            // Network settings
+            return parseNetworkSettigs(deviceDataIndex, deviceDataLength, deviceDataArray, data);
+        } else if (data.flag == '2021') {
+            // Connect timeout
+            return parseConnTimeout(deviceDataIndex, deviceDataLength, deviceDataArray, data);
+        } else if (data.flag == '2030') {
+            // MQTT settings
+            return parseMqttSettings(deviceDataIndex, deviceDataLength, deviceDataArray, data);
+        } else if (data.flag == '3032') {
+            // MQTT cert result
+            return parseMqttCertResult(deviceDataIndex, deviceDataLength, deviceDataArray, data);
+        } else if (data.flag == '2040') {
+            // Scanner report mode
+            return parseScannerReportMode(deviceDataIndex, deviceDataLength, deviceDataArray, data);
+        } else if (data.flag == '2041') {
+            // Always scan
+            return parseAlwaysScan(deviceDataIndex, deviceDataLength, deviceDataArray, data);
+        } else if (data.flag == '2042') {
+            // Periodic Scan Immediate Report
+            return parsePeriodicScanImmediateReport(deviceDataIndex, deviceDataLength, deviceDataArray, data);
+        } else if (data.flag == '2043') {
+            // Periodic Scan Periodic Report
+            return parsePeriodicScanPeriodicReport(deviceDataIndex, deviceDataLength, deviceDataArray, data);
+        } else if (data.flag == '2050') {
+            // Filter relationship
+            return parseFilterRelationship(deviceDataIndex, deviceDataLength, deviceDataArray, data);
+        } else if (data.flag == '2051') {
+            // Filter rssi
+            return parseFilterRssi(deviceDataIndex, deviceDataLength, deviceDataArray, data);
+        } else if (data.flag == '2052') {
+            // Filter phy
+            return parseFilterPhy(deviceDataIndex, deviceDataLength, deviceDataArray, data);
+        } else if (data.flag == '2053') {
+            // Filter mac
+            return parseFilterMac(deviceDataIndex, deviceDataLength, deviceDataArray, data);
+        } else if (data.flag == '2054') {
+            // Filter name
+            return parseFilterName(deviceDataIndex, deviceDataLength, deviceDataArray, data);
+        } else if (data.flag == '2055') {
+            // Filter rawdata
+            return parseFilterRawdata(deviceDataIndex, deviceDataLength, deviceDataArray, data);
+        } else if (data.flag == '2056') {
+            // Filter ibeacon
+            return parseFilterIbeacon(deviceDataIndex, deviceDataLength, deviceDataArray, data);
+        } else if (data.flag == '2057') {
+            // Filter eddystone_uid
+            return parseFilterEddystoneUID(deviceDataIndex, deviceDataLength, deviceDataArray, data);
+        } else if (data.flag == '2058') {
+            // Filter eddystone_url
+            return parseFilterEddystoneURL(deviceDataIndex, deviceDataLength, deviceDataArray, data);
+        } else if (data.flag == '2059') {
+            // Filter eddystone_tlm
+            return parseFilterEddystoneTLM(deviceDataIndex, deviceDataLength, deviceDataArray, data);
+        } else if (data.flag == '205a') {
+            // Filter bxp-devinfo
+            return parseFilterBXPDeviceInfo(deviceDataIndex, deviceDataLength, deviceDataArray, data);
+        } else if (data.flag == '205b') {
+            // Filter bxp-acc
+            return parseFilterBXPACC(deviceDataIndex, deviceDataLength, deviceDataArray, data);
+        } else if (data.flag == '205c') {
+            // Filter bxp-th
+            return parseFilterBXPTH(deviceDataIndex, deviceDataLength, deviceDataArray, data);
+        } else if (data.flag == '205d') {
+            // Filter bxp-button
+            return parseFilterBXPButton(deviceDataIndex, deviceDataLength, deviceDataArray, data);
+        } else if (data.flag == '205e') {
+            // Filter bxp-tag
+            return parseFilterBXPTag(deviceDataIndex, deviceDataLength, deviceDataArray, data);
+        } else if (data.flag == '205f') {
+            // Filter pir
+            return parseFilterPIR(deviceDataIndex, deviceDataLength, deviceDataArray, data);
+        } else if (data.flag == '2060') {
+            // Filter tof
+            return parseFilterTOF(deviceDataIndex, deviceDataLength, deviceDataArray, data);
+        } else if (data.flag == '2061') {
+            // Filter other
+            return parseFilterOther(deviceDataIndex, deviceDataLength, deviceDataArray, data);
+        } else if (data.flag == '2062') {
+            // Filter Duplicate data
+            return parseFilterDuplicateData(deviceDataIndex, deviceDataLength, deviceDataArray, data);
+        } else if (data.flag == '2070') {
+            // Adv settings
+            return parseAdvSettings(deviceDataIndex, deviceDataLength, deviceDataArray, data);
+        } else if (data.flag == '2071') {
+            // Ibeacon settings
+            return parseIbeaconSettings(deviceDataIndex, deviceDataLength, deviceDataArray, data);
+        } else if (data.flag == '2080') {
+            // Fix mode
+            return parseFixMode(deviceDataIndex, deviceDataLength, deviceDataArray, data);
+        } else if (data.flag == '2081') {
+            // Fix interval
+            return parsePeriodicFix(deviceDataIndex, deviceDataLength, deviceDataArray, data);
+        } else if (data.flag == '2082') {
+            // 3-Axis params
+            return parseAxisParams(deviceDataIndex, deviceDataLength, deviceDataArray, data);
+        } else if (data.flag == '2083') {
+            // Motion start params
+            return parseMotionStartParams(deviceDataIndex, deviceDataLength, deviceDataArray, data);
+        } else if (data.flag == '2084') {
+            // Motion in trip params
+            return parseMotionInTripParams(deviceDataIndex, deviceDataLength, deviceDataArray, data);
+        } else if (data.flag == '2085') {
+            // Motion stop params
+            return parseMotionStopParams(deviceDataIndex, deviceDataLength, deviceDataArray, data);
+        } else if (data.flag == '2086') {
+            // Stationary params
+            return parseStationaryParams(deviceDataIndex, deviceDataLength, deviceDataArray, data);
+        } else if (data.flag == '2087') {
+            // GPS params
+            return parseGPSParams(deviceDataIndex, deviceDataLength, deviceDataArray, data);
+        } else if (data.flag == '2090') {
+            // Ibeacon payload
+            return parseIbeaconPayload(deviceDataIndex, deviceDataLength, deviceDataArray, data);
+        } else if (data.flag == '2091') {
+            // EddystoneUID payload
+            return parseEddystoneUIDPayload(deviceDataIndex, deviceDataLength, deviceDataArray, data);
+        } else if (data.flag == '2092') {
+            // EddystoneURL payload
+            return parseEddystoneURLPayload(deviceDataIndex, deviceDataLength, deviceDataArray, data);
+        } else if (data.flag == '2093') {
+            // EddystoneTLM payload
+            return parseEddystoneTLMPayload(deviceDataIndex, deviceDataLength, deviceDataArray, data);
+        } else if (data.flag == '2094') {
+            // bxp-devinfo payload
+            return parseBXPDevInfoPayload(deviceDataIndex, deviceDataLength, deviceDataArray, data);
+        } else if (data.flag == '2095') {
+            // bxp-acc payload
+            return parseBXPAccPayload(deviceDataIndex, deviceDataLength, deviceDataArray, data);
+        } else if (data.flag == '2096') {
+            // bxp-th payload
+            return parseBXPTHPayload(deviceDataIndex, deviceDataLength, deviceDataArray, data);
+        } else if (data.flag == '2097') {
+            // bxp-button payload
+            return parseBXPButtonPayload(deviceDataIndex, deviceDataLength, deviceDataArray, data);
+        } else if (data.flag == '2098') {
+            // bxp-tag payload
+            return parseBXPTagPayload(deviceDataIndex, deviceDataLength, deviceDataArray, data);
+        } else if (data.flag == '2099') {
+            // pir payload
+            return parsePIRPayload(deviceDataIndex, deviceDataLength, deviceDataArray, data);
+        } else if (data.flag == '209a') {
+            // tof payload
+            return parseTOFPayload(deviceDataIndex, deviceDataLength, deviceDataArray, data);
+        } else if (data.flag == '209b') {
+            // other payload
+            return parseOtherPayload(deviceDataIndex, deviceDataLength, deviceDataArray, data);
+        } else if (data.flag == '3089' || data.flag == '30b1') {
             // Fix data
-            var fixData = {};
-            var deviceDataArray = hexStrArray.slice(11, hexStrArray.length);
-            var deviceDataIndex = 0;
-            var deviceDataLength = deviceDataArray.length;
-            for (; deviceDataIndex < deviceDataLength;) {
-                var paramTag = parseInt(deviceDataArray[deviceDataIndex], 16);
-                deviceDataIndex++;
-                var paramLength = parseHexStrArraytoInt(deviceDataArray.slice(deviceDataIndex, deviceDataIndex + 2));
-                deviceDataIndex += 2;
-                if (paramTag == 0) {
-                    fixData.timestamp = parseHexStrArraytoInt(deviceDataArray.slice(deviceDataIndex, deviceDataIndex + paramLength));
-                    fixData.current_time = parse_time(fixData.timestamp, 0);
-                } else if (paramTag == 1) {
-                    fixData.fixMode = fixModeArray[parseInt(deviceDataArray[deviceDataIndex], 16)];
-                } else if (paramTag == 2) {
-                    fixData.fixResult = fixResultArray[parseInt(deviceDataArray[deviceDataIndex], 16)];
-                } else if (paramTag == 3) {
-                    fixData.longitude = Number(signedHexToInt(deviceDataArray.slice(deviceDataIndex, deviceDataIndex + paramLength - 4).join("")) * 0.0000001).toFixed(7);
-                    fixData.latitude = Number(signedHexToInt(deviceDataArray.slice(deviceDataIndex + 4, deviceDataIndex + paramLength).join("")) * 0.0000001).toFixed(7);
-                } else if (paramTag == 4) {
-                    fixData.tac_lac = parseHexStrArraytoInt(deviceDataArray.slice(deviceDataIndex, deviceDataIndex + paramLength)) & x0FFFF;
-                    fixData.ci = (parseHexStrArraytoInt(deviceDataArray.slice(deviceDataIndex, deviceDataIndex + paramLength)) >> 4) & x0FFFFFFFF;
-                }
-                deviceDataIndex += paramLength;
-            }
-            data.fixData = fixData;
-            return JSON.stringify(data);
+            return parseFixData(deviceDataIndex, deviceDataLength, deviceDataArray, data);
         } else if (data.flag == '30a0' || data.flag == '30b2') {
             // Scan devices
-            var deviceArray = [];
-            var deviceDataArray = hexStrArray.slice(11, hexStrArray.length);
-            var deviceDataIndex = 0;
-            var deviceDataLength = deviceDataArray.length;
-            var deviceItem = {};
-            for (; deviceDataIndex < deviceDataLength;) {
-                var paramTag = parseInt(deviceDataArray[deviceDataIndex], 16);
-                deviceDataIndex++;
-                if (paramTag == 0) {
-                    // typeCode
-                    // var paramLength = parseHexStrArraytoInt(deviceDataArray.slice(deviceDataIndex, deviceDataIndex + 2));
-                    if (Object.keys(deviceItem).length != 0) {
-                        deviceArray.push(deviceItem);
-                    }
-                    deviceItem = {};
-                    deviceDataIndex += 2;
-                    deviceItem.typeCode = parseInt(deviceDataArray[deviceDataIndex], 16);
-                    deviceItem.type = typeCodeArray[deviceItem.typeCode];
-                    deviceDataIndex++;
-                } else if (paramTag == 0x01) {
-                    // mac
-                    // var paramLength = parseHexStrArraytoInt(deviceDataArray.slice(deviceDataIndex, deviceDataIndex + 2));
-                    deviceDataIndex += 2;
-                    deviceItem.mac = deviceDataArray.slice(deviceDataIndex, deviceDataIndex + 6).join("");
-                    deviceDataIndex += 6;
-                } else if (paramTag == 0x02) {
-                    // connectable
-                    // var paramLength = parseHexStrArraytoInt(deviceDataArray.slice(deviceDataIndex, deviceDataIndex + 2));
-                    deviceDataIndex += 2;
-                    deviceItem.connectable = parseInt(deviceDataArray[deviceDataIndex], 16) == 0 ? "Unconnectable" : "Connectable";
-                    deviceDataIndex++;
-                } else if (paramTag == 0x03) {
-                    // timestamp
-                    // var paramLength = parseHexStrArraytoInt(deviceDataArray.slice(deviceDataIndex, deviceDataIndex + 2));
-                    deviceDataIndex += 2;
-                    deviceItem.timestamp = parseHexStrArraytoInt(deviceDataArray.slice(deviceDataIndex, deviceDataIndex + 4));
-                    deviceDataIndex += 4;
-                    deviceItem.timezone = parseInt(deviceDataArray[deviceDataIndex], 16);
-                    deviceDataIndex++;
-                    deviceItem.current_time = parse_time(deviceItem.timestamp, deviceItem.timezone);
-                } else if (paramTag == 0x04) {
-                    // rssi
-                    // var paramLength = parseHexStrArraytoInt(deviceDataArray.slice(deviceDataIndex, deviceDataIndex + 2));
-                    deviceDataIndex += 2;
-                    deviceItem.rssi = parseInt(deviceDataArray[deviceDataIndex], 16) - 256;
-                    deviceDataIndex++;
-                } else if (paramTag == 0x05) {
-                    // adv_packet
-                    var paramLength = parseHexStrArraytoInt(deviceDataArray.slice(deviceDataIndex, deviceDataIndex + 2));
-                    deviceDataIndex += 2;
-                    deviceItem.advPacket = deviceDataArray.slice(deviceDataIndex, deviceDataIndex + paramLength).join("");
-                    deviceDataIndex += paramLength;
-                } else if (paramTag == 0x06) {
-                    // response_packet
-                    var paramLength = parseHexStrArraytoInt(deviceDataArray.slice(deviceDataIndex, deviceDataIndex + 2));
-                    deviceDataIndex += 2;
-                    deviceItem.responsePacket = deviceDataArray.slice(deviceDataIndex, deviceDataIndex + paramLength).join("");
-                    deviceDataIndex += paramLength;
-                } else if (paramTag >= 0x0A) {
-                    // 需要根据typeCode判断
-                    var paramLength = parseHexStrArraytoInt(deviceDataArray.slice(deviceDataIndex, deviceDataIndex + 2));
-                    deviceDataIndex += 2;
-                    if (deviceItem.typeCode == 0) {
-                        parseIbeacon(deviceItem, paramTag, deviceDataArray, deviceDataIndex, paramLength);
-                    } else if (deviceItem.typeCode == 1) {
-                        parseEddystoneUID(deviceItem, paramTag, deviceDataArray, deviceDataIndex, paramLength);
-                    } else if (deviceItem.typeCode == 2) {
-                        parseEddystoneURL(deviceItem, paramTag, deviceDataArray, deviceDataIndex, paramLength);
-                    } else if (deviceItem.typeCode == 3) {
-                        parseEddystoneTLM(deviceItem, paramTag, deviceDataArray, deviceDataIndex, paramLength);
-                    } else if (deviceItem.typeCode == 4) {
-                        parseDeviceInfo(deviceItem, paramTag, deviceDataArray, deviceDataIndex, paramLength);
-                    } else if (deviceItem.typeCode == 5) {
-                        parseBXPACC(deviceItem, paramTag, deviceDataArray, deviceDataIndex, paramLength);
-                    } else if (deviceItem.typeCode == 6) {
-                        parseBXPTH(deviceItem, paramTag, deviceDataArray, deviceDataIndex, paramLength);
-                    } else if (deviceItem.typeCode == 7) {
-                        parseBXPButton(deviceItem, paramTag, deviceDataArray, deviceDataIndex, paramLength);
-                    } else if (deviceItem.typeCode == 8) {
-                        parseBXPTag(deviceItem, paramTag, deviceDataArray, deviceDataIndex, paramLength);
-                    } else if (deviceItem.typeCode == 9) {
-                        parsePIR(deviceItem, paramTag, deviceDataArray, deviceDataIndex, paramLength);
-                    } else if (deviceItem.typeCode == 11) {
-                        parseTOF(deviceItem, paramTag, deviceDataArray, deviceDataIndex, paramLength);
-                    } else if (deviceItem.typeCode == 10) {
-                        parseOther(deviceItem, paramTag, deviceDataArray, deviceDataIndex, paramLength);
-                    }
-                    deviceDataIndex += paramLength;
-                }
-            }
-            if (Object.keys(deviceItem).length != 0) {
-                deviceArray.push(deviceItem);
-            }
-            data.deviceArray = deviceArray;
-            return JSON.stringify(data);
+            return parseScanDevices(deviceDataIndex, deviceDataLength, deviceDataArray, data);
         }
     }
     return value;
 }
 
 
+function parseDevInfo(deviceDataIndex, deviceDataLength, deviceDataArray, data) {
+    var deviceInfo = {};
+    for (; deviceDataIndex < deviceDataLength;) {
+        var paramTag = parseInt(deviceDataArray[deviceDataIndex], 16);
+        deviceDataIndex++;
+        var paramLength = parseHexStrArraytoInt(deviceDataArray.slice(deviceDataIndex, deviceDataIndex + 2));
+        deviceDataIndex += 2;
+        if (paramTag == 0) {
+            deviceInfo.deviceName = hexStrToString(deviceDataArray.slice(deviceDataIndex, deviceDataIndex + paramLength));
+        } else if (paramTag == 1) {
+            deviceInfo.productModel = hexStrToString(deviceDataArray.slice(deviceDataIndex, deviceDataIndex + paramLength));
+        } else if (paramTag == 2) {
+            deviceInfo.companyName = hexStrToString(deviceDataArray.slice(deviceDataIndex, deviceDataIndex + paramLength));
+        } else if (paramTag == 3) {
+            deviceInfo.hardwareVersion = hexStrToString(deviceDataArray.slice(deviceDataIndex, deviceDataIndex + paramLength));
+        } else if (paramTag == 4) {
+            deviceInfo.softwareVersion = hexStrToString(deviceDataArray.slice(deviceDataIndex, deviceDataIndex + paramLength));
+        } else if (paramTag == 5) {
+            deviceInfo.firmwareVersion = hexStrToString(deviceDataArray.slice(deviceDataIndex, deviceDataIndex + paramLength));
+        } else if (paramTag == 6) {
+            deviceInfo.imei = hexStrToString(deviceDataArray.slice(deviceDataIndex, deviceDataIndex + paramLength));
+        } else if (paramTag == 7) {
+            deviceInfo.iccid = hexStrToString(deviceDataArray.slice(deviceDataIndex, deviceDataIndex + paramLength));
+        }
+        deviceDataIndex += paramLength;
+    }
+    data.deviceInfo = deviceInfo;
+    return JSON.stringify(data);
+}
+
+function parseDevStatus(deviceDataIndex, deviceDataLength, deviceDataArray, data) {
+    var deviceStatus = {};
+    for (; deviceDataIndex < deviceDataLength;) {
+        var paramTag = parseInt(deviceDataArray[deviceDataIndex], 16);
+        deviceDataIndex++;
+        var paramLength = parseHexStrArraytoInt(deviceDataArray.slice(deviceDataIndex, deviceDataIndex + 2));
+        deviceDataIndex += 2;
+        if (paramTag == 0) {
+            deviceStatus.timestamp = parseHexStrArraytoInt(deviceDataArray.slice(deviceDataIndex, deviceDataIndex + paramLength));
+        } else if (paramTag == 1) {
+            deviceStatus.netwrokType = hexStrToString(deviceDataArray.slice(deviceDataIndex, deviceDataIndex + paramLength));
+        } else if (paramTag == 2) {
+            deviceStatus.csq = parseInt(deviceDataArray[deviceDataIndex], 16);
+        } else if (paramTag == 3) {
+            deviceStatus.battVoltage = parseHexStrArraytoInt(deviceDataArray.slice(deviceDataIndex, deviceDataIndex + paramLength)) + "mV";
+        } else if (paramTag == 4) {
+            var axis_data_array = deviceDataArray.slice(deviceDataIndex, deviceDataIndex + paramLength);
+            deviceStatus.axisDataX = axis_data_array[0] + "mg";
+            deviceStatus.axisDataY = axis_data_array[1] + "mg";
+            deviceStatus.axisDataZ = axis_data_array[2] + "mg";
+        } else if (paramTag == 5) {
+            deviceStatus.accStatus = parseInt(deviceDataArray[deviceDataIndex], 16);
+        } else if (paramTag == 6) {
+            deviceStatus.imei = hexStrToString(deviceDataArray.slice(deviceDataIndex, deviceDataIndex + paramLength));
+        }
+        deviceDataIndex += paramLength;
+    }
+    data.deviceStatus = deviceStatus;
+    return JSON.stringify(data);
+}
+
+function parseOTAResult(deviceDataIndex, deviceDataLength, deviceDataArray, data) {
+    var otaResult = {};
+    for (; deviceDataIndex < deviceDataLength;) {
+        var paramTag = parseInt(deviceDataArray[deviceDataIndex], 16);
+        deviceDataIndex++;
+        var paramLength = parseHexStrArraytoInt(deviceDataArray.slice(deviceDataIndex, deviceDataIndex + 2));
+        deviceDataIndex += 2;
+        if (paramTag == 0) {
+            // -1:in ota,0:failure,1:success
+            otaResult.result = signedHexToInt(deviceDataArray[deviceDataIndex]);
+        }
+    }
+    data.otaResult = otaResult;
+    return JSON.stringify(data);
+}
+
+function parseNTPSettings(deviceDataIndex, deviceDataLength, deviceDataArray, data) {
+    var ntp = {};
+    for (; deviceDataIndex < deviceDataLength;) {
+        var paramTag = parseInt(deviceDataArray[deviceDataIndex], 16);
+        deviceDataIndex++;
+        var paramLength = parseHexStrArraytoInt(deviceDataArray.slice(deviceDataIndex, deviceDataIndex + 2));
+        deviceDataIndex += 2;
+        if (paramTag == 0) {
+            ntp.enable = parseInt(deviceDataArray[deviceDataIndex], 16);
+        } else if (paramTag == 1) {
+            ntp.host = hexStrToString(deviceDataArray.slice(deviceDataIndex, deviceDataIndex + paramLength));
+        } else if (paramTag == 2) {
+            ntp.interval = parseInt(deviceDataArray[deviceDataIndex], 16);
+        }
+        deviceDataIndex += paramLength;
+    }
+    data.ntp = ntp;
+    return JSON.stringify(data);
+}
+
+function parseTime(deviceDataIndex, deviceDataLength, deviceDataArray, data) {
+    var currentTime = {};
+    for (; deviceDataIndex < deviceDataLength;) {
+        var paramTag = parseInt(deviceDataArray[deviceDataIndex], 16);
+        deviceDataIndex++;
+        var paramLength = parseHexStrArraytoInt(deviceDataArray.slice(deviceDataIndex, deviceDataIndex + 2));
+        deviceDataIndex += 2;
+        if (paramTag == 0) {
+            currentTime.timestamp = parseHexStrArraytoInt(deviceDataArray.slice(deviceDataIndex, deviceDataIndex + paramLength));
+        } else if (paramTag == 1) {
+            currentTime.timezone = signedHexToInt(deviceDataArray[deviceDataIndex]);
+            currentTime.timeStr = parse_time(currentTime.timestamp, currentTime.timezone);
+        }
+        deviceDataIndex += paramLength;
+    }
+    data.currentTime = currentTime;
+    return JSON.stringify(data);
+}
+
+function parseCommureTimeout(deviceDataIndex, deviceDataLength, deviceDataArray, data) {
+    var commureTimeout = {};
+    for (; deviceDataIndex < deviceDataLength;) {
+        var paramTag = parseInt(deviceDataArray[deviceDataIndex], 16);
+        deviceDataIndex++;
+        var paramLength = parseHexStrArraytoInt(deviceDataArray.slice(deviceDataIndex, deviceDataIndex + 2));
+        deviceDataIndex += 2;
+        if (paramTag == 0) {
+            commureTimeout.timeout = parseInt(deviceDataArray[deviceDataIndex], 16);
+        }
+        deviceDataIndex += paramLength;
+    }
+    data.commureTimeout = commureTimeout;
+    return JSON.stringify(data);
+}
+
+function parseIndicator(deviceDataIndex, deviceDataLength, deviceDataArray, data) {
+    var indicator = {};
+    for (; deviceDataIndex < deviceDataLength;) {
+        var paramTag = parseInt(deviceDataArray[deviceDataIndex], 16);
+        deviceDataIndex++;
+        var paramLength = parseHexStrArraytoInt(deviceDataArray.slice(deviceDataIndex, deviceDataIndex + 2));
+        deviceDataIndex += 2;
+        if (paramTag == 0) {
+            indicator.power = parseInt(deviceDataArray[deviceDataIndex], 16) & 0x01;
+            indicator.switch = (parseInt(deviceDataArray[deviceDataIndex], 16) >> 1) & 0x01;
+            indicator.network = (parseInt(deviceDataArray[deviceDataIndex], 16) >> 2) & 0x01;
+            indicator.gps = (parseInt(deviceDataArray[deviceDataIndex], 16) >> 3) & 0x01;
+        }
+        deviceDataIndex += paramLength;
+    }
+    data.indicator = indicator;
+    return JSON.stringify(data);
+}
+
+function parseUpdateFileStatus(deviceDataIndex, deviceDataLength, deviceDataArray, data) {
+    var updateStatus = {};
+    for (; deviceDataIndex < deviceDataLength;) {
+        var paramTag = parseInt(deviceDataArray[deviceDataIndex], 16);
+        deviceDataIndex++;
+        var paramLength = parseHexStrArraytoInt(deviceDataArray.slice(deviceDataIndex, deviceDataIndex + 2));
+        deviceDataIndex += 2;
+        if (paramTag == 0) {
+            updateStatus.updateStatus = parseInt(deviceDataArray[deviceDataIndex], 16) == 1 ? "Updating" : "No updating";
+        }
+        deviceDataIndex += paramLength;
+    }
+    data.updateStatus = updateStatus;
+    return JSON.stringify(data);
+}
+
+function parseReportSettings(deviceDataIndex, deviceDataLength, deviceDataArray, data) {
+    var reportSettings = {};
+    for (; deviceDataIndex < deviceDataLength;) {
+        var paramTag = parseInt(deviceDataArray[deviceDataIndex], 16);
+        deviceDataIndex++;
+        var paramLength = parseHexStrArraytoInt(deviceDataArray.slice(deviceDataIndex, deviceDataIndex + 2));
+        deviceDataIndex += 2;
+        if (paramTag == 0) {
+            reportSettings.interval = parseHexStrArraytoInt(deviceDataArray.slice(deviceDataIndex, deviceDataIndex + paramLength));
+        } else if (paramTag == 1) {
+            reportSettings.battVoltage = parseInt(deviceDataArray[deviceDataIndex], 16) & 0x01;
+            reportSettings.axisData = (parseInt(deviceDataArray[deviceDataIndex], 16) >> 1) & 0x01;
+            reportSettings.accStatus = (parseInt(deviceDataArray[deviceDataIndex], 16) >> 2) & 0x01;
+        }
+        deviceDataIndex += paramLength;
+    }
+    data.reportSettings = reportSettings;
+    return JSON.stringify(data);
+}
+
+function parsePowerOffNotify(deviceDataIndex, deviceDataLength, deviceDataArray, data) {
+    var powerOffNotify = {};
+    for (; deviceDataIndex < deviceDataLength;) {
+        var paramTag = parseInt(deviceDataArray[deviceDataIndex], 16);
+        deviceDataIndex++;
+        var paramLength = parseHexStrArraytoInt(deviceDataArray.slice(deviceDataIndex, deviceDataIndex + 2));
+        deviceDataIndex += 2;
+        if (paramTag == 0) {
+            powerOffNotify.enable = parseInt(deviceDataArray[deviceDataIndex], 16);
+        }
+        deviceDataIndex += paramLength;
+    }
+    data.powerOffNotify = powerOffNotify;
+    return JSON.stringify(data);
+}
+
+function parseBleConnectPassword(deviceDataIndex, deviceDataLength, deviceDataArray, data) {
+    var blePassword = {};
+    for (; deviceDataIndex < deviceDataLength;) {
+        var paramTag = parseInt(deviceDataArray[deviceDataIndex], 16);
+        deviceDataIndex++;
+        var paramLength = parseHexStrArraytoInt(deviceDataArray.slice(deviceDataIndex, deviceDataIndex + 2));
+        deviceDataIndex += 2;
+        if (paramTag == 0) {
+            blePassword.password = hexStrToString(deviceDataArray.slice(deviceDataIndex, deviceDataIndex + paramLength));
+        }
+        deviceDataIndex += paramLength;
+    }
+    data.blePassword = blePassword;
+    return JSON.stringify(data);
+}
+
+function parsePasswordVerify(deviceDataIndex, deviceDataLength, deviceDataArray, data) {
+    var passwordVerify = {};
+    for (; deviceDataIndex < deviceDataLength;) {
+        var paramTag = parseInt(deviceDataArray[deviceDataIndex], 16);
+        deviceDataIndex++;
+        var paramLength = parseHexStrArraytoInt(deviceDataArray.slice(deviceDataIndex, deviceDataIndex + 2));
+        deviceDataIndex += 2;
+        if (paramTag == 0) {
+            passwordVerify.enable = parseInt(deviceDataArray[deviceDataIndex], 16);
+        }
+        deviceDataIndex += paramLength;
+    }
+    data.passwordVerify = passwordVerify;
+    return JSON.stringify(data);
+}
+
+function parsePowerOffAlarm(deviceDataIndex, deviceDataLength, deviceDataArray, data) {
+    var powerOffAlarm = {};
+    for (; deviceDataIndex < deviceDataLength;) {
+        var paramTag = parseInt(deviceDataArray[deviceDataIndex], 16);
+        deviceDataIndex++;
+        var paramLength = parseHexStrArraytoInt(deviceDataArray.slice(deviceDataIndex, deviceDataIndex + 2));
+        deviceDataIndex += 2;
+        if (paramTag == 0) {
+            powerOffAlarm.timestamp = parseHexStrArraytoInt(deviceDataArray.slice(deviceDataIndex, deviceDataIndex + paramLength));
+            powerOffAlarm.timeStr = parse_time(powerOffAlarm.timestamp, 0);
+        } else if (paramTag == 1) {
+            lowPowerAlarm.battVoltage = parseHexStrArraytoInt(deviceDataArray.slice(deviceDataIndex, deviceDataIndex + paramLength)) + "mV";
+        }
+        deviceDataIndex += paramLength;
+    }
+    data.powerOffAlarm = powerOffAlarm;
+    return JSON.stringify(data);
+}
+
+function parseLowPowerAlarm(deviceDataIndex, deviceDataLength, deviceDataArray, data) {
+    var lowPowerAlarm = {};
+    for (; deviceDataIndex < deviceDataLength;) {
+        var paramTag = parseInt(deviceDataArray[deviceDataIndex], 16);
+        deviceDataIndex++;
+        var paramLength = parseHexStrArraytoInt(deviceDataArray.slice(deviceDataIndex, deviceDataIndex + 2));
+        deviceDataIndex += 2;
+        if (paramTag == 0) {
+            lowPowerAlarm.timestamp = parseHexStrArraytoInt(deviceDataArray.slice(deviceDataIndex, deviceDataIndex + paramLength));
+            lowPowerAlarm.timeStr = parse_time(lowPowerAlarm.timestamp, 0);
+        } else if (paramTag == 1) {
+            lowPowerAlarm.battVoltage = parseHexStrArraytoInt(deviceDataArray.slice(deviceDataIndex, deviceDataIndex + paramLength)) + "mV";
+        }
+        deviceDataIndex += paramLength;
+    }
+    data.lowPowerAlarm = lowPowerAlarm;
+    return JSON.stringify(data);
+}
+
+function parseLowPower(deviceDataIndex, deviceDataLength, deviceDataArray, data) {
+    var lowPower = {};
+    for (; deviceDataIndex < deviceDataLength;) {
+        var paramTag = parseInt(deviceDataArray[deviceDataIndex], 16);
+        deviceDataIndex++;
+        var paramLength = parseHexStrArraytoInt(deviceDataArray.slice(deviceDataIndex, deviceDataIndex + 2));
+        deviceDataIndex += 2;
+        if (paramTag == 0) {
+            lowPower.enable = parseInt(deviceDataArray[deviceDataIndex], 16);
+        } else if (paramTag == 1) {
+            lowPower.percentage = lowPowerArray[parseInt(deviceDataArray[deviceDataIndex], 16)];
+        }
+        deviceDataIndex += paramLength;
+    }
+    data.lowPower = lowPower;
+    return JSON.stringify(data);
+}
+
+function parseBattery(deviceDataIndex, deviceDataLength, deviceDataArray, data) {
+    var battery = {};
+    for (; deviceDataIndex < deviceDataLength;) {
+        var paramTag = parseInt(deviceDataArray[deviceDataIndex], 16);
+        deviceDataIndex++;
+        var paramLength = parseHexStrArraytoInt(deviceDataArray.slice(deviceDataIndex, deviceDataIndex + 2));
+        deviceDataIndex += 2;
+        if (paramTag == 0) {
+            battery.voltage = parseHexStrArraytoInt(deviceDataArray.slice(deviceDataIndex, deviceDataIndex + paramLength)) + "mV";
+        }
+        deviceDataIndex += paramLength;
+    }
+    data.battery = battery;
+    return JSON.stringify(data);
+}
+
+function parsePowerOn(deviceDataIndex, deviceDataLength, deviceDataArray, data) {
+    var powerOn = {};
+    for (; deviceDataIndex < deviceDataLength;) {
+        var paramTag = parseInt(deviceDataArray[deviceDataIndex], 16);
+        deviceDataIndex++;
+        var paramLength = parseHexStrArraytoInt(deviceDataArray.slice(deviceDataIndex, deviceDataIndex + 2));
+        deviceDataIndex += 2;
+        if (paramTag == 0) {
+            powerOn.enable = parseInt(deviceDataArray[deviceDataIndex], 16);
+        }
+        deviceDataIndex += paramLength;
+    }
+    data.powerOn = powerOn;
+    return JSON.stringify(data);
+}
+
+function parseNetworkSettigs(deviceDataIndex, deviceDataLength, deviceDataArray, data) {
+    var networkSettings = {};
+    for (; deviceDataIndex < deviceDataLength;) {
+        var paramTag = parseInt(deviceDataArray[deviceDataIndex], 16);
+        deviceDataIndex++;
+        var paramLength = parseHexStrArraytoInt(deviceDataArray.slice(deviceDataIndex, deviceDataIndex + 2));
+        deviceDataIndex += 2;
+        if (paramTag == 0) {
+            networkSettings.priority = parseInt(deviceDataArray[deviceDataIndex], 16);
+        } else if (paramTag == 1) {
+            networkSettings.apn = hexStrToString(deviceDataArray.slice(deviceDataIndex, deviceDataIndex + paramLength));
+        } else if (paramTag == 2) {
+            networkSettings.apnUsername = hexStrToString(deviceDataArray.slice(deviceDataIndex, deviceDataIndex + paramLength));
+        } else if (paramTag == 3) {
+            networkSettings.apnPassword = hexStrToString(deviceDataArray.slice(deviceDataIndex, deviceDataIndex + paramLength));
+        }
+        deviceDataIndex += paramLength;
+    }
+    data.networkSettings = networkSettings;
+    return JSON.stringify(data);
+}
+
+function parseConnTimeout(deviceDataIndex, deviceDataLength, deviceDataArray, data) {
+    var connect = {};
+    for (; deviceDataIndex < deviceDataLength;) {
+        var paramTag = parseInt(deviceDataArray[deviceDataIndex], 16);
+        deviceDataIndex++;
+        var paramLength = parseHexStrArraytoInt(deviceDataArray.slice(deviceDataIndex, deviceDataIndex + 2));
+        deviceDataIndex += 2;
+        if (paramTag == 0) {
+            connect.timeout = parseHexStrArraytoInt(deviceDataArray.slice(deviceDataIndex, deviceDataIndex + paramLength));
+        }
+        deviceDataIndex += paramLength;
+    }
+    data.connect = connect;
+    return JSON.stringify(data);
+}
+
+function parseMqttSettings(deviceDataIndex, deviceDataLength, deviceDataArray, data) {
+    var mqttSettings = {};
+    for (; deviceDataIndex < deviceDataLength;) {
+        var paramTag = parseInt(deviceDataArray[deviceDataIndex], 16);
+        deviceDataIndex++;
+        var paramLength = parseHexStrArraytoInt(deviceDataArray.slice(deviceDataIndex, deviceDataIndex + 2));
+        deviceDataIndex += 2;
+        if (paramTag == 0) {
+            mqttSettings.sslMode = parseInt(deviceDataArray[deviceDataIndex], 16);
+        } else if (paramTag == 1) {
+            mqttSettings.host = hexStrToString(deviceDataArray.slice(deviceDataIndex, deviceDataIndex + paramLength));
+        } else if (paramTag == 2) {
+            mqttSettings.port = parseHexStrArraytoInt(deviceDataArray.slice(deviceDataIndex, deviceDataIndex + paramLength));
+        } else if (paramTag == 3) {
+            mqttSettings.clientId = hexStrToString(deviceDataArray.slice(deviceDataIndex, deviceDataIndex + paramLength));
+        } else if (paramTag == 4) {
+            mqttSettings.username = hexStrToString(deviceDataArray.slice(deviceDataIndex, deviceDataIndex + paramLength));
+        } else if (paramTag == 5) {
+            mqttSettings.password = hexStrToString(deviceDataArray.slice(deviceDataIndex, deviceDataIndex + paramLength));
+        } else if (paramTag == 6) {
+            mqttSettings.subscribeTopic = hexStrToString(deviceDataArray.slice(deviceDataIndex, deviceDataIndex + paramLength));
+        } else if (paramTag == 7) {
+            mqttSettings.publishTopic = hexStrToString(deviceDataArray.slice(deviceDataIndex, deviceDataIndex + paramLength));
+        } else if (paramTag == 8) {
+            mqttSettings.qos = parseInt(deviceDataArray[deviceDataIndex], 16);
+        } else if (paramTag == 9) {
+            mqttSettings.cleanSession = parseInt(deviceDataArray[deviceDataIndex], 16);
+        } else if (paramTag == 10) {
+            mqttSettings.keepAlive = parseInt(deviceDataArray[deviceDataIndex], 16);
+        }
+        deviceDataIndex += paramLength;
+    }
+    data.mqttSettings = mqttSettings;
+    return JSON.stringify(data);
+}
+
+function parseMqttCert(deviceDataIndex, deviceDataLength, deviceDataArray, data) {
+    var mqttCert = {};
+    for (; deviceDataIndex < deviceDataLength;) {
+        var paramTag = parseInt(deviceDataArray[deviceDataIndex], 16);
+        deviceDataIndex++;
+        var paramLength = parseHexStrArraytoInt(deviceDataArray.slice(deviceDataIndex, deviceDataIndex + 2));
+        deviceDataIndex += 2;
+        if (paramTag == 0) {
+            mqttCert.caUrl = hexStrToString(deviceDataArray.slice(deviceDataIndex, deviceDataIndex + paramLength));
+        } else if (paramTag == 1) {
+            mqttCert.clientCertUrl = hexStrToString(deviceDataArray.slice(deviceDataIndex, deviceDataIndex + paramLength));
+        } else if (paramTag == 2) {
+            mqttCert.clientKeyUrl = hexStrToString(deviceDataArray.slice(deviceDataIndex, deviceDataIndex + paramLength));
+        }
+        deviceDataIndex += paramLength;
+    }
+    data.mqttCert = mqttCert;
+    return JSON.stringify(data);
+}
+
+function parseMqttCertResult(deviceDataIndex, deviceDataLength, deviceDataArray, data) {
+    var mqttCertResult = {};
+    for (; deviceDataIndex < deviceDataLength;) {
+        var paramTag = parseInt(deviceDataArray[deviceDataIndex], 16);
+        deviceDataIndex++;
+        var paramLength = parseHexStrArraytoInt(deviceDataArray.slice(deviceDataIndex, deviceDataIndex + 2));
+        deviceDataIndex += 2;
+        if (paramTag == 0) {
+            // -1:in ota,0:failure,1:success
+            mqttCertResult.otaResult = parseInt(deviceDataArray[deviceDataIndex], 16);
+        }
+        deviceDataIndex += paramLength;
+    }
+    data.mqttCertResult = mqttCertResult;
+    return JSON.stringify(data);
+}
+
+function parseScannerReportMode(deviceDataIndex, deviceDataLength, deviceDataArray, data) {
+    var scannerReportMode = {};
+    for (; deviceDataIndex < deviceDataLength;) {
+        var paramTag = parseInt(deviceDataArray[deviceDataIndex], 16);
+        deviceDataIndex++;
+        var paramLength = parseHexStrArraytoInt(deviceDataArray.slice(deviceDataIndex, deviceDataIndex + 2));
+        deviceDataIndex += 2;
+        if (paramTag == 0) {
+            scannerReportMode.mode = scannerReportArray[parseInt(deviceDataArray[deviceDataIndex], 16)];
+        } else if (paramTag == 1) {
+            scannerReportMode.autoSwtich = parseInt(deviceDataArray[deviceDataIndex], 16);
+        }
+        deviceDataIndex += paramLength;
+    }
+    data.scannerReportMode = scannerReportMode;
+    return JSON.stringify(data);
+}
+
+function parseAlwaysScan(deviceDataIndex, deviceDataLength, deviceDataArray, data) {
+    var alwaysScan = {};
+    for (; deviceDataIndex < deviceDataLength;) {
+        var paramTag = parseInt(deviceDataArray[deviceDataIndex], 16);
+        deviceDataIndex++;
+        var paramLength = parseHexStrArraytoInt(deviceDataArray.slice(deviceDataIndex, deviceDataIndex + 2));
+        deviceDataIndex += 2;
+        if (paramTag == 0) {
+            alwaysScan.interval = parseHexStrArraytoInt(deviceDataArray.slice(deviceDataIndex, deviceDataIndex + paramLength));
+        }
+        deviceDataIndex += paramLength;
+    }
+    data.alwaysScan = alwaysScan;
+    return JSON.stringify(data);
+}
+
+function parsePeriodicScanImmediateReport(deviceDataIndex, deviceDataLength, deviceDataArray, data) {
+    var periodicScanImmediateReport = {};
+    for (; deviceDataIndex < deviceDataLength;) {
+        var paramTag = parseInt(deviceDataArray[deviceDataIndex], 16);
+        deviceDataIndex++;
+        var paramLength = parseHexStrArraytoInt(deviceDataArray.slice(deviceDataIndex, deviceDataIndex + 2));
+        deviceDataIndex += 2;
+        if (paramTag == 0) {
+            periodicScanImmediateReport.duration = parseHexStrArraytoInt(deviceDataArray.slice(deviceDataIndex, deviceDataIndex + paramLength));
+        } else if (paramTag == 1) {
+            periodicScanImmediateReport.interval = parseHexStrArraytoInt(deviceDataArray.slice(deviceDataIndex, deviceDataIndex + paramLength));
+        }
+        deviceDataIndex += paramLength;
+    }
+    data.periodicScanImmediateReport = periodicScanImmediateReport;
+    return JSON.stringify(data);
+}
+
+function parsePeriodicScanPeriodicReport(deviceDataIndex, deviceDataLength, deviceDataArray, data) {
+    var periodicScanPeriodicReport = {};
+    for (; deviceDataIndex < deviceDataLength;) {
+        var paramTag = parseInt(deviceDataArray[deviceDataIndex], 16);
+        deviceDataIndex++;
+        var paramLength = parseHexStrArraytoInt(deviceDataArray.slice(deviceDataIndex, deviceDataIndex + 2));
+        deviceDataIndex += 2;
+        if (paramTag == 0) {
+            periodicScanPeriodicReport.duration = parseHexStrArraytoInt(deviceDataArray.slice(deviceDataIndex, deviceDataIndex + paramLength));
+        } else if (paramTag == 1) {
+            periodicScanPeriodicReport.interval = parseHexStrArraytoInt(deviceDataArray.slice(deviceDataIndex, deviceDataIndex + paramLength));
+        } else if (paramTag == 2) {
+            periodicScanPeriodicReport.reportInterval = parseHexStrArraytoInt(deviceDataArray.slice(deviceDataIndex, deviceDataIndex + paramLength));
+        } else if (paramTag == 3) {
+            periodicScanPeriodicReport.dataRetentionPriority = parseInt(deviceDataArray[deviceDataIndex], 16);
+        }
+        deviceDataIndex += paramLength;
+    }
+    data.periodicScanPeriodicReport = periodicScanPeriodicReport;
+    return JSON.stringify(data);
+}
+
+function parseFilterRelationship(deviceDataIndex, deviceDataLength, deviceDataArray, data) {
+    var filter = {};
+    for (; deviceDataIndex < deviceDataLength;) {
+        var paramTag = parseInt(deviceDataArray[deviceDataIndex], 16);
+        deviceDataIndex++;
+        var paramLength = parseHexStrArraytoInt(deviceDataArray.slice(deviceDataIndex, deviceDataIndex + 2));
+        deviceDataIndex += 2;
+        if (paramTag == 0) {
+            filter.relation = parseInt(deviceDataArray[deviceDataIndex], 16);
+        }
+        deviceDataIndex += paramLength;
+    }
+    data.filter = filter;
+    return JSON.stringify(data);
+}
+
+function parseFilterRssi(deviceDataIndex, deviceDataLength, deviceDataArray, data) {
+    var filter = {};
+    for (; deviceDataIndex < deviceDataLength;) {
+        var paramTag = parseInt(deviceDataArray[deviceDataIndex], 16);
+        deviceDataIndex++;
+        var paramLength = parseHexStrArraytoInt(deviceDataArray.slice(deviceDataIndex, deviceDataIndex + 2));
+        deviceDataIndex += 2;
+        if (paramTag == 0) {
+            filter.rssi = signedHexToInt(deviceDataArray[deviceDataIndex], 16);
+        }
+        deviceDataIndex += paramLength;
+    }
+    data.filter = filter;
+    return JSON.stringify(data);
+}
+
+function parseFilterPhy(deviceDataIndex, deviceDataLength, deviceDataArray, data) {
+    var filter = {};
+    for (; deviceDataIndex < deviceDataLength;) {
+        var paramTag = parseInt(deviceDataArray[deviceDataIndex], 16);
+        deviceDataIndex++;
+        var paramLength = parseHexStrArraytoInt(deviceDataArray.slice(deviceDataIndex, deviceDataIndex + 2));
+        deviceDataIndex += 2;
+        if (paramTag == 0) {
+            filter.phy = parseInt(deviceDataArray[deviceDataIndex], 16);
+        }
+        deviceDataIndex += paramLength;
+    }
+    data.filter = filter;
+    return JSON.stringify(data);
+}
+
+function parseFilterMac(deviceDataIndex, deviceDataLength, deviceDataArray, data) {
+    var filterMac = {};
+    var array = [];
+    for (; deviceDataIndex < deviceDataLength;) {
+        var paramTag = parseInt(deviceDataArray[deviceDataIndex], 16);
+        deviceDataIndex++;
+        var paramLength = parseHexStrArraytoInt(deviceDataArray.slice(deviceDataIndex, deviceDataIndex + 2));
+        deviceDataIndex += 2;
+        if (paramTag == 0) {
+            filterMac.precise = parseInt(deviceDataArray[deviceDataIndex], 16);
+        } else if (paramTag == 1) {
+            filterMac.reverse = parseInt(deviceDataArray[deviceDataIndex], 16);
+        } else if (paramTag == 2) {
+            var mac = deviceDataArray.slice(deviceDataIndex, deviceDataIndex + paramLength).join("");
+            array.push(mac);
+        }
+        deviceDataIndex += paramLength;
+    }
+    filterMac.array = array
+    data.filterMac = filterMac;
+    return JSON.stringify(data);
+}
+
+function parseFilterName(deviceDataIndex, deviceDataLength, deviceDataArray, data) {
+    var filterName = {};
+    var array = [];
+    for (; deviceDataIndex < deviceDataLength;) {
+        var paramTag = parseInt(deviceDataArray[deviceDataIndex], 16);
+        deviceDataIndex++;
+        var paramLength = parseHexStrArraytoInt(deviceDataArray.slice(deviceDataIndex, deviceDataIndex + 2));
+        deviceDataIndex += 2;
+        if (paramTag == 0) {
+            filterName.precise = parseInt(deviceDataArray[deviceDataIndex], 16);
+        } else if (paramTag == 1) {
+            filterName.reverse = parseInt(deviceDataArray[deviceDataIndex], 16);
+        } else if (paramTag == 2) {
+            var mac = hexStrToString(deviceDataArray.slice(deviceDataIndex, deviceDataIndex + paramLength));
+            array.push(mac);
+        }
+        deviceDataIndex += paramLength;
+    }
+    filterName.array = array
+    data.filterName = filterName;
+    return JSON.stringify(data);
+}
+
+function parseFilterRawdata(deviceDataIndex, deviceDataLength, deviceDataArray, data) {
+    var filterRawdata = {};
+    for (; deviceDataIndex < deviceDataLength;) {
+        var paramTag = parseInt(deviceDataArray[deviceDataIndex], 16);
+        deviceDataIndex++;
+        var paramLength = parseHexStrArraytoInt(deviceDataArray.slice(deviceDataIndex, deviceDataIndex + 2));
+        deviceDataIndex += 2;
+        if (paramTag == 0) {
+            filterRawdata.ibeacon = parseHexStrArraytoInt(deviceDataArray.slice(deviceDataIndex, deviceDataIndex + paramLength)) & 0x01;
+            filterRawdata.eddystoneUID = (parseHexStrArraytoInt(deviceDataArray.slice(deviceDataIndex, deviceDataIndex + paramLength)) >> 1) & 0x01;
+            filterRawdata.eddystoneURL = (parseHexStrArraytoInt(deviceDataArray.slice(deviceDataIndex, deviceDataIndex + paramLength)) >> 2) & 0x01;
+            filterRawdata.eddystoneTLM = (parseHexStrArraytoInt(deviceDataArray.slice(deviceDataIndex, deviceDataIndex + paramLength)) >> 3) & 0x01;
+            filterRawdata.bxpDeviceInfo = (parseHexStrArraytoInt(deviceDataArray.slice(deviceDataIndex, deviceDataIndex + paramLength)) >> 4) & 0x01;
+            filterRawdata.bxpAcc = (parseHexStrArraytoInt(deviceDataArray.slice(deviceDataIndex, deviceDataIndex + paramLength)) >> 5) & 0x01;
+            filterRawdata.bxpTH = (parseHexStrArraytoInt(deviceDataArray.slice(deviceDataIndex, deviceDataIndex + paramLength)) >> 6) & 0x01;
+            filterRawdata.bxpButton = (parseHexStrArraytoInt(deviceDataArray.slice(deviceDataIndex, deviceDataIndex + paramLength)) >> 7) & 0x01;
+            filterRawdata.bxpTag = (parseHexStrArraytoInt(deviceDataArray.slice(deviceDataIndex, deviceDataIndex + paramLength)) >> 8) & 0x01;
+            filterRawdata.pir = (parseHexStrArraytoInt(deviceDataArray.slice(deviceDataIndex, deviceDataIndex + paramLength)) >> 9) & 0x01;
+            filterRawdata.tof = (parseHexStrArraytoInt(deviceDataArray.slice(deviceDataIndex, deviceDataIndex + paramLength)) >> 10) & 0x01;
+            filterRawdata.other = (parseHexStrArraytoInt(deviceDataArray.slice(deviceDataIndex, deviceDataIndex + paramLength)) >> 11) & 0x01;
+        }
+        deviceDataIndex += paramLength;
+    }
+    data.filterRawdata = filterRawdata;
+    return JSON.stringify(data);
+}
+
+function parseFilterIbeacon(deviceDataIndex, deviceDataLength, deviceDataArray, data) {
+    var filterIbeacon = {};
+    for (; deviceDataIndex < deviceDataLength;) {
+        var paramTag = parseInt(deviceDataArray[deviceDataIndex], 16);
+        deviceDataIndex++;
+        var paramLength = parseHexStrArraytoInt(deviceDataArray.slice(deviceDataIndex, deviceDataIndex + 2));
+        deviceDataIndex += 2;
+        if (paramTag == 0) {
+            filterIbeacon.enable = parseInt(deviceDataArray[deviceDataIndex], 16);
+        } else if (paramTag == 1) {
+            filterIbeacon.minMajor = parseHexStrArraytoInt(deviceDataArray.slice(deviceDataIndex, deviceDataIndex + paramLength));
+        } else if (paramTag == 2) {
+            filterIbeacon.maxMajor = parseHexStrArraytoInt(deviceDataArray.slice(deviceDataIndex, deviceDataIndex + paramLength));
+        } else if (paramTag == 3) {
+            filterIbeacon.minMinor = parseHexStrArraytoInt(deviceDataArray.slice(deviceDataIndex, deviceDataIndex + paramLength));
+        } else if (paramTag == 4) {
+            filterIbeacon.maxMinor = parseHexStrArraytoInt(deviceDataArray.slice(deviceDataIndex, deviceDataIndex + paramLength));
+        } else if (paramTag == 5) {
+            filterIbeacon.uuid = deviceDataArray.slice(deviceDataIndex, deviceDataIndex + paramLength).join("");
+        }
+        deviceDataIndex += paramLength;
+    }
+    data.filterIbeacon = filterIbeacon;
+    return JSON.stringify(data);
+}
+
+function parseFilterEddystoneUID(deviceDataIndex, deviceDataLength, deviceDataArray, data) {
+    var filterEddystoneUID = {};
+    for (; deviceDataIndex < deviceDataLength;) {
+        var paramTag = parseInt(deviceDataArray[deviceDataIndex], 16);
+        deviceDataIndex++;
+        var paramLength = parseHexStrArraytoInt(deviceDataArray.slice(deviceDataIndex, deviceDataIndex + 2));
+        deviceDataIndex += 2;
+        if (paramTag == 0) {
+            filterEddystoneUID.enable = parseInt(deviceDataArray[deviceDataIndex], 16);
+        } else if (paramTag == 1) {
+            filterEddystoneUID.namespace = deviceDataArray.slice(deviceDataIndex, deviceDataIndex + paramLength).join("");
+        } else if (paramTag == 2) {
+            filterEddystoneUID.instance = deviceDataArray.slice(deviceDataIndex, deviceDataIndex + paramLength).join("");
+        }
+        deviceDataIndex += paramLength;
+    }
+    data.filterEddystoneUID = filterEddystoneUID;
+    return JSON.stringify(data);
+}
+
+function parseFilterEddystoneURL(deviceDataIndex, deviceDataLength, deviceDataArray, data) {
+    var filterEddystoneURL = {};
+    for (; deviceDataIndex < deviceDataLength;) {
+        var paramTag = parseInt(deviceDataArray[deviceDataIndex], 16);
+        deviceDataIndex++;
+        var paramLength = parseHexStrArraytoInt(deviceDataArray.slice(deviceDataIndex, deviceDataIndex + 2));
+        deviceDataIndex += 2;
+        if (paramTag == 0) {
+            filterEddystoneURL.enable = parseInt(deviceDataArray[deviceDataIndex], 16);
+        } else if (paramTag == 1) {
+            filterEddystoneURL.url = hexStrToString(deviceDataArray.slice(deviceDataIndex, deviceDataIndex + paramLength));
+        }
+        deviceDataIndex += paramLength;
+    }
+    data.filterEddystoneURL = filterEddystoneURL;
+    return JSON.stringify(data);
+}
+
+function parseFilterEddystoneTLM(deviceDataIndex, deviceDataLength, deviceDataArray, data) {
+    var filterEddystoneTLM = {};
+    for (; deviceDataIndex < deviceDataLength;) {
+        var paramTag = parseInt(deviceDataArray[deviceDataIndex], 16);
+        deviceDataIndex++;
+        var paramLength = parseHexStrArraytoInt(deviceDataArray.slice(deviceDataIndex, deviceDataIndex + 2));
+        deviceDataIndex += 2;
+        if (paramTag == 0) {
+            filterEddystoneTLM.enable = parseInt(deviceDataArray[deviceDataIndex], 16);
+        } else if (paramTag == 1) {
+            filterEddystoneTLM.tlmVersion = parseInt(deviceDataArray[deviceDataIndex], 16);
+        }
+        deviceDataIndex += paramLength;
+    }
+    data.filterEddystoneTLM = filterEddystoneTLM;
+    return JSON.stringify(data);
+}
+
+function parseFilterBXPDeviceInfo(deviceDataIndex, deviceDataLength, deviceDataArray, data) {
+    var filterBXPDeviceInfo = {};
+    for (; deviceDataIndex < deviceDataLength;) {
+        var paramTag = parseInt(deviceDataArray[deviceDataIndex], 16);
+        deviceDataIndex++;
+        var paramLength = parseHexStrArraytoInt(deviceDataArray.slice(deviceDataIndex, deviceDataIndex + 2));
+        deviceDataIndex += 2;
+        if (paramTag == 0) {
+            filterBXPDeviceInfo.enable = parseInt(deviceDataArray[deviceDataIndex], 16);
+        }
+        deviceDataIndex += paramLength;
+    }
+    data.filterBXPDeviceInfo = filterBXPDeviceInfo;
+    return JSON.stringify(data);
+}
+
+function parseFilterBXPACC(deviceDataIndex, deviceDataLength, deviceDataArray, data) {
+    var filterBXPACC = {};
+    for (; deviceDataIndex < deviceDataLength;) {
+        var paramTag = parseInt(deviceDataArray[deviceDataIndex], 16);
+        deviceDataIndex++;
+        var paramLength = parseHexStrArraytoInt(deviceDataArray.slice(deviceDataIndex, deviceDataIndex + 2));
+        deviceDataIndex += 2;
+        if (paramTag == 0) {
+            filterBXPACC.enable = parseInt(deviceDataArray[deviceDataIndex], 16);
+        }
+        deviceDataIndex += paramLength;
+    }
+    data.filterBXPACC = filterBXPACC;
+    return JSON.stringify(data);
+}
+
+function parseFilterBXPTH(deviceDataIndex, deviceDataLength, deviceDataArray, data) {
+    var filterBXPTH = {};
+    for (; deviceDataIndex < deviceDataLength;) {
+        var paramTag = parseInt(deviceDataArray[deviceDataIndex], 16);
+        deviceDataIndex++;
+        var paramLength = parseHexStrArraytoInt(deviceDataArray.slice(deviceDataIndex, deviceDataIndex + 2));
+        deviceDataIndex += 2;
+        if (paramTag == 0) {
+            filterBXPTH.enable = parseInt(deviceDataArray[deviceDataIndex], 16);
+        }
+        deviceDataIndex += paramLength;
+    }
+    data.filterBXPTH = filterBXPTH;
+    return JSON.stringify(data);
+}
+
+function parseFilterBXPButton(deviceDataIndex, deviceDataLength, deviceDataArray, data) {
+    var filterBXPButton = {};
+    for (; deviceDataIndex < deviceDataLength;) {
+        var paramTag = parseInt(deviceDataArray[deviceDataIndex], 16);
+        deviceDataIndex++;
+        var paramLength = parseHexStrArraytoInt(deviceDataArray.slice(deviceDataIndex, deviceDataIndex + 2));
+        deviceDataIndex += 2;
+        if (paramTag == 0) {
+            filterBXPButton.enable = parseInt(deviceDataArray[deviceDataIndex], 16);
+        } else if (paramTag == 1) {
+            filterBXPButton.singlePress = parseInt(deviceDataArray[deviceDataIndex], 16) & 0x01;
+            filterBXPButton.doublePress = (parseInt(deviceDataArray[deviceDataIndex], 16) >> 1) & 0x01;
+            filterBXPButton.longPress = (parseInt(deviceDataArray[deviceDataIndex], 16) >> 2) & 0x01;
+            filterBXPButton.abnormalInactivity = (parseInt(deviceDataArray[deviceDataIndex], 16) >> 3) & 0x01;
+        }
+        deviceDataIndex += paramLength;
+    }
+    data.filterBXPButton = filterBXPButton;
+    return JSON.stringify(data);
+}
+
+function parseFilterBXPTag(deviceDataIndex, deviceDataLength, deviceDataArray, data) {
+    var filterBXPTag = {};
+    var array = [];
+    for (; deviceDataIndex < deviceDataLength;) {
+        var paramTag = parseInt(deviceDataArray[deviceDataIndex], 16);
+        deviceDataIndex++;
+        var paramLength = parseHexStrArraytoInt(deviceDataArray.slice(deviceDataIndex, deviceDataIndex + 2));
+        deviceDataIndex += 2;
+        if (paramTag == 0) {
+            filterBXPTag.enable = parseInt(deviceDataArray[deviceDataIndex], 16);
+        } else if (paramTag == 1) {
+            filterBXPTag.precise = parseInt(deviceDataArray[deviceDataIndex], 16);
+        } else if (paramTag == 2) {
+            filterBXPTag.reverse = parseInt(deviceDataArray[deviceDataIndex], 16);
+        } else if (paramTag == 3) {
+            var tagId = deviceDataArray.slice(deviceDataIndex, deviceDataIndex + paramLength).join("");
+            array.push(tagId);
+        }
+        deviceDataIndex += paramLength;
+    }
+    filterBXPTag.array = array
+    data.filterBXPTag = filterBXPTag;
+    return JSON.stringify(data);
+}
+
+function parseFilterPIR(deviceDataIndex, deviceDataLength, deviceDataArray, data) {
+    var filterPIR = {};
+    for (; deviceDataIndex < deviceDataLength;) {
+        var paramTag = parseInt(deviceDataArray[deviceDataIndex], 16);
+        deviceDataIndex++;
+        var paramLength = parseHexStrArraytoInt(deviceDataArray.slice(deviceDataIndex, deviceDataIndex + 2));
+        deviceDataIndex += 2;
+        if (paramTag == 0) {
+            filterPIR.enable = parseInt(deviceDataArray[deviceDataIndex], 16);
+        } else if (paramTag == 1) {
+            filterPIR.delayRespStatus = pirDelayRespStatusArray[parseInt(deviceDataArray[deviceDataIndex], 16)];
+        } else if (paramTag == 2) {
+            filterPIR.doorStatus = pirDoorStatusArray[parseInt(deviceDataArray[deviceDataIndex], 16)];
+        } else if (paramTag == 3) {
+            filterPIR.sensorSensitivity = pirSensorSensitivityArray[parseInt(deviceDataArray[deviceDataIndex], 16)];
+        } else if (paramTag == 4) {
+            filterPIR.sensorDetectionStatus = pirSensorDetactionStatusArray[parseInt(deviceDataArray[deviceDataIndex], 16)];
+        } else if (paramTag == 5) {
+            filterPIR.minMajor = parseHexStrArraytoInt(deviceDataArray.slice(deviceDataIndex, deviceDataIndex + paramLength));
+        } else if (paramTag == 6) {
+            filterPIR.maxMajor = parseHexStrArraytoInt(deviceDataArray.slice(deviceDataIndex, deviceDataIndex + paramLength));
+        } else if (paramTag == 7) {
+            filterPIR.minMinor = parseHexStrArraytoInt(deviceDataArray.slice(deviceDataIndex, deviceDataIndex + paramLength));
+        } else if (paramTag == 8) {
+            filterPIR.maxMinor = parseHexStrArraytoInt(deviceDataArray.slice(deviceDataIndex, deviceDataIndex + paramLength));
+        }
+        deviceDataIndex += paramLength;
+    }
+    data.filterPIR = filterPIR;
+    return JSON.stringify(data);
+}
+
+function parseFilterTOF(deviceDataIndex, deviceDataLength, deviceDataArray, data) {
+    var filterTOF = {};
+    var array = [];
+    for (; deviceDataIndex < deviceDataLength;) {
+        var paramTag = parseInt(deviceDataArray[deviceDataIndex], 16);
+        deviceDataIndex++;
+        var paramLength = parseHexStrArraytoInt(deviceDataArray.slice(deviceDataIndex, deviceDataIndex + 2));
+        deviceDataIndex += 2;
+        if (paramTag == 0) {
+            filterTOF.enable = parseInt(deviceDataArray[deviceDataIndex], 16);
+        } else if (paramTag == 1) {
+            var code = deviceDataArray.slice(deviceDataIndex, deviceDataIndex + paramLength).join("");
+            array.push(code);
+        }
+        deviceDataIndex += paramLength;
+    }
+    filterTOF.array = array
+    data.filterTOF = filterTOF;
+    return JSON.stringify(data);
+}
+
+function parseFilterOther(deviceDataIndex, deviceDataLength, deviceDataArray, data) {
+    var filterOther = {};
+    var array = [];
+    for (; deviceDataIndex < deviceDataLength;) {
+        var paramTag = parseInt(deviceDataArray[deviceDataIndex], 16);
+        deviceDataIndex++;
+        var paramLength = parseHexStrArraytoInt(deviceDataArray.slice(deviceDataIndex, deviceDataIndex + 2));
+        deviceDataIndex += 2;
+        if (paramTag == 0) {
+            filterOther.enable = parseInt(deviceDataArray[deviceDataIndex], 16);
+        } else if (paramTag == 1) {
+            filterOther.relation = otherRelationArray[parseInt(deviceDataArray[deviceDataIndex], 16)];
+        } else if (paramTag == 2) {
+            var item = {};
+            item.type = deviceDataArray[deviceDataIndex];
+            item.start = parseInt(deviceDataArray[deviceDataIndex + 1], 16);
+            item.end = parseInt(deviceDataArray[deviceDataIndex + 2], 16);
+            item.data = deviceDataArray.slice(deviceDataIndex + 3, deviceDataIndex + paramLength).join("");
+            array.push(item);
+        }
+        deviceDataIndex += paramLength;
+    }
+    filterOther.array = array;
+    data.filterOther = filterOther;
+    return JSON.stringify(data);
+}
+
+function parseFilterDuplicateData(deviceDataIndex, deviceDataLength, deviceDataArray, data) {
+    var filterDuplicate = {};
+    for (; deviceDataIndex < deviceDataLength;) {
+        var paramTag = parseInt(deviceDataArray[deviceDataIndex], 16);
+        deviceDataIndex++;
+        var paramLength = parseHexStrArraytoInt(deviceDataArray.slice(deviceDataIndex, deviceDataIndex + 2));
+        deviceDataIndex += 2;
+        if (paramTag == 0) {
+            filterDuplicate.rule = filterDuplicateDataRuleArray[parseInt(deviceDataArray[deviceDataIndex], 16)];
+        }
+        deviceDataIndex += paramLength;
+    }
+    data.filterDuplicate = filterDuplicate;
+    return JSON.stringify(data);
+}
+
+function parseAdvSettings(deviceDataIndex, deviceDataLength, deviceDataArray, data) {
+    var advSettings = {};
+    for (; deviceDataIndex < deviceDataLength;) {
+        var paramTag = parseInt(deviceDataArray[deviceDataIndex], 16);
+        deviceDataIndex++;
+        var paramLength = parseHexStrArraytoInt(deviceDataArray.slice(deviceDataIndex, deviceDataIndex + 2));
+        deviceDataIndex += 2;
+        if (paramTag == 0) {
+            advSettings.respEnable = parseInt(deviceDataArray[deviceDataIndex], 16);
+        } else if (paramTag == 1) {
+            advSettings.advName = hexStrToString(deviceDataArray.slice(deviceDataIndex, deviceDataIndex + paramLength));
+        } else if (paramTag == 2) {
+            advSettings.advInterval = parseInt(deviceDataArray[deviceDataIndex], 16);
+        } else if (paramTag == 3) {
+            advSettings.txPower = signedHexToInt(deviceDataArray[deviceDataIndex]);
+        } else if (paramTag == 4) {
+            advSettings.advTimeout = parseInt(deviceDataArray[deviceDataIndex], 16);
+        }
+        deviceDataIndex += paramLength;
+    }
+    data.advSettings = advSettings;
+    return JSON.stringify(data);
+}
+
+function parseIbeaconSettings(deviceDataIndex, deviceDataLength, deviceDataArray, data) {
+    var ibeaconSettings = {};
+    for (; deviceDataIndex < deviceDataLength;) {
+        var paramTag = parseInt(deviceDataArray[deviceDataIndex], 16);
+        deviceDataIndex++;
+        var paramLength = parseHexStrArraytoInt(deviceDataArray.slice(deviceDataIndex, deviceDataIndex + 2));
+        deviceDataIndex += 2;
+        if (paramTag == 0) {
+            ibeaconSettings.major = parseHexStrArraytoInt(deviceDataArray.slice(deviceDataIndex, deviceDataIndex + paramLength));
+        } else if (paramTag == 1) {
+            ibeaconSettings.minor = parseHexStrArraytoInt(deviceDataArray.slice(deviceDataIndex, deviceDataIndex + paramLength));
+        } else if (paramTag == 2) {
+            ibeaconSettings.uuid = deviceDataArray.slice(deviceDataIndex, deviceDataIndex + paramLength).join("");
+        } else if (paramTag == 3) {
+            ibeaconSettings.rssi_1m = signedHexToInt(deviceDataArray[deviceDataIndex]);
+        }
+        deviceDataIndex += paramLength;
+    }
+    data.ibeaconSettings = ibeaconSettings;
+    return JSON.stringify(data);
+}
+
+function parseFixMode(deviceDataIndex, deviceDataLength, deviceDataArray, data) {
+    var fixMode = {};
+    for (; deviceDataIndex < deviceDataLength;) {
+        var paramTag = parseInt(deviceDataArray[deviceDataIndex], 16);
+        deviceDataIndex++;
+        var paramLength = parseHexStrArraytoInt(deviceDataArray.slice(deviceDataIndex, deviceDataIndex + 2));
+        deviceDataIndex += 2;
+        if (paramTag == 0) {
+            fixMode.mode = fixModeArray[parseInt(deviceDataArray[deviceDataIndex], 16)];
+        }
+        deviceDataIndex += paramLength;
+    }
+    data.fixMode = fixMode;
+    return JSON.stringify(data);
+}
+
+function parsePeriodicFix(deviceDataIndex, deviceDataLength, deviceDataArray, data) {
+    var periodicFix = {};
+    for (; deviceDataIndex < deviceDataLength;) {
+        var paramTag = parseInt(deviceDataArray[deviceDataIndex], 16);
+        deviceDataIndex++;
+        var paramLength = parseHexStrArraytoInt(deviceDataArray.slice(deviceDataIndex, deviceDataIndex + 2));
+        deviceDataIndex += 2;
+        if (paramTag == 0) {
+            periodicFix.advInterval = parseHexStrArraytoInt(deviceDataArray.slice(deviceDataIndex, deviceDataIndex + paramLength));
+        }
+        deviceDataIndex += paramLength;
+    }
+    data.periodicFix = periodicFix;
+    return JSON.stringify(data);
+}
+
+function parseAxisParams(deviceDataIndex, deviceDataLength, deviceDataArray, data) {
+    var axisParams = {};
+    for (; deviceDataIndex < deviceDataLength;) {
+        var paramTag = parseInt(deviceDataArray[deviceDataIndex], 16);
+        deviceDataIndex++;
+        var paramLength = parseHexStrArraytoInt(deviceDataArray.slice(deviceDataIndex, deviceDataIndex + 2));
+        deviceDataIndex += 2;
+        if (paramTag == 0) {
+            axisParams.wakeupThreshold = parseHexStrArraytoInt(deviceDataArray.slice(deviceDataIndex, deviceDataIndex + paramLength));
+        } else if (paramTag == 1) {
+            axisParams.wakeupDuration = parseHexStrArraytoInt(deviceDataArray.slice(deviceDataIndex, deviceDataIndex + paramLength));
+        } else if (paramTag == 2) {
+            axisParams.motionThreshold = parseHexStrArraytoInt(deviceDataArray.slice(deviceDataIndex, deviceDataIndex + paramLength));
+        } else if (paramTag == 3) {
+            axisParams.motionDuration = parseHexStrArraytoInt(deviceDataArray.slice(deviceDataIndex, deviceDataIndex + paramLength));
+        }
+        deviceDataIndex += paramLength;
+    }
+    data.axisParams = axisParams;
+    return JSON.stringify(data);
+}
+
+function parseMotionStartParams(deviceDataIndex, deviceDataLength, deviceDataArray, data) {
+    var motionStartParams = {};
+    for (; deviceDataIndex < deviceDataLength;) {
+        var paramTag = parseInt(deviceDataArray[deviceDataIndex], 16);
+        deviceDataIndex++;
+        var paramLength = parseHexStrArraytoInt(deviceDataArray.slice(deviceDataIndex, deviceDataIndex + 2));
+        deviceDataIndex += 2;
+        if (paramTag == 0) {
+            motionStartParams.enable = parseInt(deviceDataArray[deviceDataIndex], 16);
+        }
+        deviceDataIndex += paramLength;
+    }
+    data.motionStartParams = motionStartParams;
+    return JSON.stringify(data);
+}
+
+function parseMotionInTripParams(deviceDataIndex, deviceDataLength, deviceDataArray, data) {
+    var motionInTripParams = {};
+    for (; deviceDataIndex < deviceDataLength;) {
+        var paramTag = parseInt(deviceDataArray[deviceDataIndex], 16);
+        deviceDataIndex++;
+        var paramLength = parseHexStrArraytoInt(deviceDataArray.slice(deviceDataIndex, deviceDataIndex + 2));
+        deviceDataIndex += 2;
+        if (paramTag == 0) {
+            motionInTripParams.enable = parseInt(deviceDataArray[deviceDataIndex], 16);
+        } else if (paramTag == 1) {
+            motionInTripParams.interval = parseHexStrArraytoInt(deviceDataArray.slice(deviceDataIndex, deviceDataIndex + paramLength));
+        }
+        deviceDataIndex += paramLength;
+    }
+    data.motionInTripParams = motionInTripParams;
+    return JSON.stringify(data);
+}
+
+function parseMotionStopParams(deviceDataIndex, deviceDataLength, deviceDataArray, data) {
+    var motionStopParams = {};
+    for (; deviceDataIndex < deviceDataLength;) {
+        var paramTag = parseInt(deviceDataArray[deviceDataIndex], 16);
+        deviceDataIndex++;
+        var paramLength = parseHexStrArraytoInt(deviceDataArray.slice(deviceDataIndex, deviceDataIndex + 2));
+        deviceDataIndex += 2;
+        if (paramTag == 0) {
+            motionStopParams.enable = parseInt(deviceDataArray[deviceDataIndex], 16);
+        } else if (paramTag == 1) {
+            motionStopParams.timeout = parseInt(deviceDataArray[deviceDataIndex], 16);
+        }
+        deviceDataIndex += paramLength;
+    }
+    data.motionStopParams = motionStopParams;
+    return JSON.stringify(data);
+}
+
+function parseStationaryParams(deviceDataIndex, deviceDataLength, deviceDataArray, data) {
+    var stationaryParams = {};
+    for (; deviceDataIndex < deviceDataLength;) {
+        var paramTag = parseInt(deviceDataArray[deviceDataIndex], 16);
+        deviceDataIndex++;
+        var paramLength = parseHexStrArraytoInt(deviceDataArray.slice(deviceDataIndex, deviceDataIndex + 2));
+        deviceDataIndex += 2;
+        if (paramTag == 0) {
+            stationaryParams.enable = parseInt(deviceDataArray[deviceDataIndex], 16);
+        } else if (paramTag == 1) {
+            stationaryParams.interval = parseHexStrArraytoInt(deviceDataArray.slice(deviceDataIndex, deviceDataIndex + paramLength));
+        }
+        deviceDataIndex += paramLength;
+    }
+    data.stationaryParams = stationaryParams;
+    return JSON.stringify(data);
+}
+
+function parseGPSParams(deviceDataIndex, deviceDataLength, deviceDataArray, data) {
+    var gpsParams = {};
+    for (; deviceDataIndex < deviceDataLength;) {
+        var paramTag = parseInt(deviceDataArray[deviceDataIndex], 16);
+        deviceDataIndex++;
+        var paramLength = parseHexStrArraytoInt(deviceDataArray.slice(deviceDataIndex, deviceDataIndex + 2));
+        deviceDataIndex += 2;
+        if (paramTag == 0) {
+            gpsParams.timeout = parseHexStrArraytoInt(deviceDataArray.slice(deviceDataIndex, deviceDataIndex + paramLength));
+        } else if (paramTag == 1) {
+            gpsParams.pdop = parseInt(deviceDataArray[deviceDataIndex], 16);
+        }
+        deviceDataIndex += paramLength;
+    }
+    data.gpsParams = gpsParams;
+    return JSON.stringify(data);
+}
+
+function parseIbeaconPayload(deviceDataIndex, deviceDataLength, deviceDataArray, data) {
+    var ibeaconPayload = {};
+    for (; deviceDataIndex < deviceDataLength;) {
+        var paramTag = parseInt(deviceDataArray[deviceDataIndex], 16);
+        deviceDataIndex++;
+        var paramLength = parseHexStrArraytoInt(deviceDataArray.slice(deviceDataIndex, deviceDataIndex + 2));
+        deviceDataIndex += 2;
+        if (paramTag == 0) {
+            ibeaconPayload.rssi = parseHexStrArraytoInt(deviceDataArray.slice(deviceDataIndex, deviceDataIndex + paramLength)) & 0x01;
+            ibeaconPayload.timestamp = (parseHexStrArraytoInt(deviceDataArray.slice(deviceDataIndex, deviceDataIndex + paramLength)) >> 1) & 0x01;
+            ibeaconPayload.uuid = (parseHexStrArraytoInt(deviceDataArray.slice(deviceDataIndex, deviceDataIndex + paramLength)) >> 2) & 0x01;
+            ibeaconPayload.major = (parseHexStrArraytoInt(deviceDataArray.slice(deviceDataIndex, deviceDataIndex + paramLength)) >> 3) & 0x01;
+            ibeaconPayload.minor = (parseHexStrArraytoInt(deviceDataArray.slice(deviceDataIndex, deviceDataIndex + paramLength)) >> 4) & 0x01;
+            ibeaconPayload.rssi_1m = (parseHexStrArraytoInt(deviceDataArray.slice(deviceDataIndex, deviceDataIndex + paramLength)) >> 5) & 0x01;
+            ibeaconPayload.rawAdv = (parseHexStrArraytoInt(deviceDataArray.slice(deviceDataIndex, deviceDataIndex + paramLength)) >> 6) & 0x01;
+            ibeaconPayload.rawResp = (parseHexStrArraytoInt(deviceDataArray.slice(deviceDataIndex, deviceDataIndex + paramLength)) >> 7) & 0x01;
+        }
+        deviceDataIndex += paramLength;
+    }
+    data.ibeaconPayload = ibeaconPayload;
+    return JSON.stringify(data);
+}
+
+function parseEddystoneUIDPayload(deviceDataIndex, deviceDataLength, deviceDataArray, data) {
+    var eddystoneUIDPayload = {};
+    for (; deviceDataIndex < deviceDataLength;) {
+        var paramTag = parseInt(deviceDataArray[deviceDataIndex], 16);
+        deviceDataIndex++;
+        var paramLength = parseHexStrArraytoInt(deviceDataArray.slice(deviceDataIndex, deviceDataIndex + 2));
+        deviceDataIndex += 2;
+        if (paramTag == 0) {
+            eddystoneUIDPayload.rssi = parseHexStrArraytoInt(deviceDataArray.slice(deviceDataIndex, deviceDataIndex + paramLength)) & 0x01;
+            eddystoneUIDPayload.timestamp = (parseHexStrArraytoInt(deviceDataArray.slice(deviceDataIndex, deviceDataIndex + paramLength)) >> 1) & 0x01;
+            eddystoneUIDPayload.rssi_0m = (parseHexStrArraytoInt(deviceDataArray.slice(deviceDataIndex, deviceDataIndex + paramLength)) >> 2) & 0x01;
+            eddystoneUIDPayload.namespace = (parseHexStrArraytoInt(deviceDataArray.slice(deviceDataIndex, deviceDataIndex + paramLength)) >> 3) & 0x01;
+            eddystoneUIDPayload.instance = (parseHexStrArraytoInt(deviceDataArray.slice(deviceDataIndex, deviceDataIndex + paramLength)) >> 4) & 0x01;
+            eddystoneUIDPayload.rawAdv = (parseHexStrArraytoInt(deviceDataArray.slice(deviceDataIndex, deviceDataIndex + paramLength)) >> 5) & 0x01;
+            eddystoneUIDPayload.rawResp = (parseHexStrArraytoInt(deviceDataArray.slice(deviceDataIndex, deviceDataIndex + paramLength)) >> 6) & 0x01;
+        }
+        deviceDataIndex += paramLength;
+    }
+    data.eddystoneUIDPayload = eddystoneUIDPayload;
+    return JSON.stringify(data);
+}
+
+function parseEddystoneURLPayload(deviceDataIndex, deviceDataLength, deviceDataArray, data) {
+    var eddystoneURLPayload = {};
+    for (; deviceDataIndex < deviceDataLength;) {
+        var paramTag = parseInt(deviceDataArray[deviceDataIndex], 16);
+        deviceDataIndex++;
+        var paramLength = parseHexStrArraytoInt(deviceDataArray.slice(deviceDataIndex, deviceDataIndex + 2));
+        deviceDataIndex += 2;
+        if (paramTag == 0) {
+            eddystoneURLPayload.rssi = parseHexStrArraytoInt(deviceDataArray.slice(deviceDataIndex, deviceDataIndex + paramLength)) & 0x01;
+            eddystoneURLPayload.timestamp = (parseHexStrArraytoInt(deviceDataArray.slice(deviceDataIndex, deviceDataIndex + paramLength)) >> 1) & 0x01;
+            eddystoneURLPayload.rssi_0m = (parseHexStrArraytoInt(deviceDataArray.slice(deviceDataIndex, deviceDataIndex + paramLength)) >> 2) & 0x01;
+            eddystoneURLPayload.url = (parseHexStrArraytoInt(deviceDataArray.slice(deviceDataIndex, deviceDataIndex + paramLength)) >> 3) & 0x01;
+            eddystoneURLPayload.rawAdv = (parseHexStrArraytoInt(deviceDataArray.slice(deviceDataIndex, deviceDataIndex + paramLength)) >> 4) & 0x01;
+            eddystoneURLPayload.rawResp = (parseHexStrArraytoInt(deviceDataArray.slice(deviceDataIndex, deviceDataIndex + paramLength)) >> 5) & 0x01;
+        }
+        deviceDataIndex += paramLength;
+    }
+    data.eddystoneURLPayload = eddystoneURLPayload;
+    return JSON.stringify(data);
+}
+
+function parseEddystoneTLMPayload(deviceDataIndex, deviceDataLength, deviceDataArray, data) {
+    var eddystoneTLMPayload = {};
+    for (; deviceDataIndex < deviceDataLength;) {
+        var paramTag = parseInt(deviceDataArray[deviceDataIndex], 16);
+        deviceDataIndex++;
+        var paramLength = parseHexStrArraytoInt(deviceDataArray.slice(deviceDataIndex, deviceDataIndex + 2));
+        deviceDataIndex += 2;
+        if (paramTag == 0) {
+            eddystoneTLMPayload.rssi = parseHexStrArraytoInt(deviceDataArray.slice(deviceDataIndex, deviceDataIndex + paramLength)) & 0x01;
+            eddystoneTLMPayload.timestamp = (parseHexStrArraytoInt(deviceDataArray.slice(deviceDataIndex, deviceDataIndex + paramLength)) >> 1) & 0x01;
+            eddystoneTLMPayload.tlmVersion = (parseHexStrArraytoInt(deviceDataArray.slice(deviceDataIndex, deviceDataIndex + paramLength)) >> 2) & 0x01;
+            eddystoneTLMPayload.battVoltage = (parseHexStrArraytoInt(deviceDataArray.slice(deviceDataIndex, deviceDataIndex + paramLength)) >> 3) & 0x01;
+            eddystoneTLMPayload.temperature = (parseHexStrArraytoInt(deviceDataArray.slice(deviceDataIndex, deviceDataIndex + paramLength)) >> 4) & 0x01;
+            eddystoneTLMPayload.advCnt = (parseHexStrArraytoInt(deviceDataArray.slice(deviceDataIndex, deviceDataIndex + paramLength)) >> 5) & 0x01;
+            eddystoneTLMPayload.secCnt = (parseHexStrArraytoInt(deviceDataArray.slice(deviceDataIndex, deviceDataIndex + paramLength)) >> 6) & 0x01;
+            eddystoneTLMPayload.rawAdv = (parseHexStrArraytoInt(deviceDataArray.slice(deviceDataIndex, deviceDataIndex + paramLength)) >> 7) & 0x01;
+            eddystoneTLMPayload.rawResp = (parseHexStrArraytoInt(deviceDataArray.slice(deviceDataIndex, deviceDataIndex + paramLength)) >> 8) & 0x01;
+        }
+        deviceDataIndex += paramLength;
+    }
+    data.eddystoneTLMPayload = eddystoneTLMPayload;
+    return JSON.stringify(data);
+}
+
+function parseBXPDevInfoPayload(deviceDataIndex, deviceDataLength, deviceDataArray, data) {
+    var bxpDevInfoPayload = {};
+    for (; deviceDataIndex < deviceDataLength;) {
+        var paramTag = parseInt(deviceDataArray[deviceDataIndex], 16);
+        deviceDataIndex++;
+        var paramLength = parseHexStrArraytoInt(deviceDataArray.slice(deviceDataIndex, deviceDataIndex + 2));
+        deviceDataIndex += 2;
+        if (paramTag == 0) {
+            bxpDevInfoPayload.rssi = parseHexStrArraytoInt(deviceDataArray.slice(deviceDataIndex, deviceDataIndex + paramLength)) & 0x01;
+            bxpDevInfoPayload.timestamp = (parseHexStrArraytoInt(deviceDataArray.slice(deviceDataIndex, deviceDataIndex + paramLength)) >> 1) & 0x01;
+            bxpDevInfoPayload.txPower = (parseHexStrArraytoInt(deviceDataArray.slice(deviceDataIndex, deviceDataIndex + paramLength)) >> 2) & 0x01;
+            bxpDevInfoPayload.rangingData = (parseHexStrArraytoInt(deviceDataArray.slice(deviceDataIndex, deviceDataIndex + paramLength)) >> 3) & 0x01;
+            bxpDevInfoPayload.advInterval = (parseHexStrArraytoInt(deviceDataArray.slice(deviceDataIndex, deviceDataIndex + paramLength)) >> 4) & 0x01;
+            bxpDevInfoPayload.battVoltage = (parseHexStrArraytoInt(deviceDataArray.slice(deviceDataIndex, deviceDataIndex + paramLength)) >> 5) & 0x01;
+            bxpDevInfoPayload.devicePropertyIndicator = (parseHexStrArraytoInt(deviceDataArray.slice(deviceDataIndex, deviceDataIndex + paramLength)) >> 6) & 0x01;
+            bxpDevInfoPayload.switchStatusIndicator = (parseHexStrArraytoInt(deviceDataArray.slice(deviceDataIndex, deviceDataIndex + paramLength)) >> 7) & 0x01;
+            bxpDevInfoPayload.firmwareVersion = (parseHexStrArraytoInt(deviceDataArray.slice(deviceDataIndex, deviceDataIndex + paramLength)) >> 8) & 0x01;
+            bxpDevInfoPayload.deviceName = (parseHexStrArraytoInt(deviceDataArray.slice(deviceDataIndex, deviceDataIndex + paramLength)) >> 9) & 0x01;
+            bxpDevInfoPayload.rawAdv = (parseHexStrArraytoInt(deviceDataArray.slice(deviceDataIndex, deviceDataIndex + paramLength)) >> 10) & 0x01;
+            bxpDevInfoPayload.rawResp = (parseHexStrArraytoInt(deviceDataArray.slice(deviceDataIndex, deviceDataIndex + paramLength)) >> 11) & 0x01;
+        }
+        deviceDataIndex += paramLength;
+    }
+    data.bxpDevInfoPayload = bxpDevInfoPayload;
+    return JSON.stringify(data);
+}
+
+function parseBXPAccPayload(deviceDataIndex, deviceDataLength, deviceDataArray, data) {
+    var bxpAccPayload = {};
+    for (; deviceDataIndex < deviceDataLength;) {
+        var paramTag = parseInt(deviceDataArray[deviceDataIndex], 16);
+        deviceDataIndex++;
+        var paramLength = parseHexStrArraytoInt(deviceDataArray.slice(deviceDataIndex, deviceDataIndex + 2));
+        deviceDataIndex += 2;
+        if (paramTag == 0) {
+            bxpAccPayload.rssi = parseHexStrArraytoInt(deviceDataArray.slice(deviceDataIndex, deviceDataIndex + paramLength)) & 0x01;
+            bxpAccPayload.timestamp = (parseHexStrArraytoInt(deviceDataArray.slice(deviceDataIndex, deviceDataIndex + paramLength)) >> 1) & 0x01;
+            bxpAccPayload.txPower = (parseHexStrArraytoInt(deviceDataArray.slice(deviceDataIndex, deviceDataIndex + paramLength)) >> 2) & 0x01;
+            bxpAccPayload.rangingData = (parseHexStrArraytoInt(deviceDataArray.slice(deviceDataIndex, deviceDataIndex + paramLength)) >> 3) & 0x01;
+            bxpAccPayload.advInterval = (parseHexStrArraytoInt(deviceDataArray.slice(deviceDataIndex, deviceDataIndex + paramLength)) >> 4) & 0x01;
+            bxpAccPayload.samplingRate = (parseHexStrArraytoInt(deviceDataArray.slice(deviceDataIndex, deviceDataIndex + paramLength)) >> 5) & 0x01;
+            bxpAccPayload.fullScale = (parseHexStrArraytoInt(deviceDataArray.slice(deviceDataIndex, deviceDataIndex + paramLength)) >> 6) & 0x01;
+            bxpAccPayload.motionThreshold = (parseHexStrArraytoInt(deviceDataArray.slice(deviceDataIndex, deviceDataIndex + paramLength)) >> 7) & 0x01;
+            bxpAccPayload.axisData = (parseHexStrArraytoInt(deviceDataArray.slice(deviceDataIndex, deviceDataIndex + paramLength)) >> 8) & 0x01;
+            bxpAccPayload.battVoltage = (parseHexStrArraytoInt(deviceDataArray.slice(deviceDataIndex, deviceDataIndex + paramLength)) >> 9) & 0x01;
+            bxpAccPayload.rawAdv = (parseHexStrArraytoInt(deviceDataArray.slice(deviceDataIndex, deviceDataIndex + paramLength)) >> 10) & 0x01;
+        }
+        deviceDataIndex += paramLength;
+    }
+    data.bxpAccPayload = bxpAccPayload;
+    return JSON.stringify(data);
+}
+
+function parseBXPTHPayload(deviceDataIndex, deviceDataLength, deviceDataArray, data) {
+    var bxpTHPayload = {};
+    for (; deviceDataIndex < deviceDataLength;) {
+        var paramTag = parseInt(deviceDataArray[deviceDataIndex], 16);
+        deviceDataIndex++;
+        var paramLength = parseHexStrArraytoInt(deviceDataArray.slice(deviceDataIndex, deviceDataIndex + 2));
+        deviceDataIndex += 2;
+        if (paramTag == 0) {
+            bxpTHPayload.rssi = parseHexStrArraytoInt(deviceDataArray.slice(deviceDataIndex, deviceDataIndex + paramLength)) & 0x01;
+            bxpTHPayload.timestamp = (parseHexStrArraytoInt(deviceDataArray.slice(deviceDataIndex, deviceDataIndex + paramLength)) >> 1) & 0x01;
+            bxpTHPayload.txPower = (parseHexStrArraytoInt(deviceDataArray.slice(deviceDataIndex, deviceDataIndex + paramLength)) >> 2) & 0x01;
+            bxpTHPayload.rangingData = (parseHexStrArraytoInt(deviceDataArray.slice(deviceDataIndex, deviceDataIndex + paramLength)) >> 3) & 0x01;
+            bxpTHPayload.advInterval = (parseHexStrArraytoInt(deviceDataArray.slice(deviceDataIndex, deviceDataIndex + paramLength)) >> 4) & 0x01;
+            bxpTHPayload.temperature = (parseHexStrArraytoInt(deviceDataArray.slice(deviceDataIndex, deviceDataIndex + paramLength)) >> 5) & 0x01;
+            bxpTHPayload.humidity = (parseHexStrArraytoInt(deviceDataArray.slice(deviceDataIndex, deviceDataIndex + paramLength)) >> 6) & 0x01;
+            bxpTHPayload.battVoltage = (parseHexStrArraytoInt(deviceDataArray.slice(deviceDataIndex, deviceDataIndex + paramLength)) >> 7) & 0x01;
+            bxpTHPayload.rawAdv = (parseHexStrArraytoInt(deviceDataArray.slice(deviceDataIndex, deviceDataIndex + paramLength)) >> 8) & 0x01;
+        }
+        deviceDataIndex += paramLength;
+    }
+    data.bxpTHPayload = bxpTHPayload;
+    return JSON.stringify(data);
+}
+
+function parseBXPButtonPayload(deviceDataIndex, deviceDataLength, deviceDataArray, data) {
+    var bxpButtonPayload = {};
+    for (; deviceDataIndex < deviceDataLength;) {
+        var paramTag = parseInt(deviceDataArray[deviceDataIndex], 16);
+        deviceDataIndex++;
+        var paramLength = parseHexStrArraytoInt(deviceDataArray.slice(deviceDataIndex, deviceDataIndex + 2));
+        deviceDataIndex += 2;
+        if (paramTag == 0) {
+            bxpButtonPayload.rssi = parseHexStrArraytoInt(deviceDataArray.slice(deviceDataIndex, deviceDataIndex + paramLength)) & 0x01;
+            bxpButtonPayload.timestamp = (parseHexStrArraytoInt(deviceDataArray.slice(deviceDataIndex, deviceDataIndex + paramLength)) >> 1) & 0x01;
+            bxpButtonPayload.frameType = (parseHexStrArraytoInt(deviceDataArray.slice(deviceDataIndex, deviceDataIndex + paramLength)) >> 2) & 0x01;
+            bxpButtonPayload.statusFlag = (parseHexStrArraytoInt(deviceDataArray.slice(deviceDataIndex, deviceDataIndex + paramLength)) >> 3) & 0x01;
+            bxpButtonPayload.triggerCount = (parseHexStrArraytoInt(deviceDataArray.slice(deviceDataIndex, deviceDataIndex + paramLength)) >> 4) & 0x01;
+            bxpButtonPayload.deviceId = (parseHexStrArraytoInt(deviceDataArray.slice(deviceDataIndex, deviceDataIndex + paramLength)) >> 5) & 0x01;
+            bxpButtonPayload.firmwareType = (parseHexStrArraytoInt(deviceDataArray.slice(deviceDataIndex, deviceDataIndex + paramLength)) >> 6) & 0x01;
+            bxpButtonPayload.deviceName = (parseHexStrArraytoInt(deviceDataArray.slice(deviceDataIndex, deviceDataIndex + paramLength)) >> 7) & 0x01;
+            bxpButtonPayload.fullScale = (parseHexStrArraytoInt(deviceDataArray.slice(deviceDataIndex, deviceDataIndex + paramLength)) >> 8) & 0x01;
+            bxpButtonPayload.motionThreshold = (parseHexStrArraytoInt(deviceDataArray.slice(deviceDataIndex, deviceDataIndex + paramLength)) >> 9) & 0x01;
+            bxpButtonPayload.axisData = (parseHexStrArraytoInt(deviceDataArray.slice(deviceDataIndex, deviceDataIndex + paramLength)) >> 10) & 0x01;
+            bxpButtonPayload.temperature = (parseHexStrArraytoInt(deviceDataArray.slice(deviceDataIndex, deviceDataIndex + paramLength)) >> 11) & 0x01;
+            bxpButtonPayload.rangingData = (parseHexStrArraytoInt(deviceDataArray.slice(deviceDataIndex, deviceDataIndex + paramLength)) >> 12) & 0x01;
+            bxpButtonPayload.battVoltage = (parseHexStrArraytoInt(deviceDataArray.slice(deviceDataIndex, deviceDataIndex + paramLength)) >> 13) & 0x01;
+            bxpButtonPayload.txPower = (parseHexStrArraytoInt(deviceDataArray.slice(deviceDataIndex, deviceDataIndex + paramLength)) >> 14) & 0x01;
+            bxpButtonPayload.rawAdv = (parseHexStrArraytoInt(deviceDataArray.slice(deviceDataIndex, deviceDataIndex + paramLength)) >> 15) & 0x01;
+            bxpButtonPayload.rawResp = (parseHexStrArraytoInt(deviceDataArray.slice(deviceDataIndex, deviceDataIndex + paramLength)) >> 16) & 0x01;
+        }
+        deviceDataIndex += paramLength;
+    }
+    data.bxpButtonPayload = bxpButtonPayload;
+    return JSON.stringify(data);
+}
+
+function parseBXPTagPayload(deviceDataIndex, deviceDataLength, deviceDataArray, data) {
+    var bxpTagPayload = {};
+    for (; deviceDataIndex < deviceDataLength;) {
+        var paramTag = parseInt(deviceDataArray[deviceDataIndex], 16);
+        deviceDataIndex++;
+        var paramLength = parseHexStrArraytoInt(deviceDataArray.slice(deviceDataIndex, deviceDataIndex + 2));
+        deviceDataIndex += 2;
+        if (paramTag == 0) {
+            bxpTagPayload.rssi = parseHexStrArraytoInt(deviceDataArray.slice(deviceDataIndex, deviceDataIndex + paramLength)) & 0x01;
+            bxpTagPayload.timestamp = (parseHexStrArraytoInt(deviceDataArray.slice(deviceDataIndex, deviceDataIndex + paramLength)) >> 1) & 0x01;
+            bxpTagPayload.sensorData = (parseHexStrArraytoInt(deviceDataArray.slice(deviceDataIndex, deviceDataIndex + paramLength)) >> 2) & 0x01;
+            bxpTagPayload.hallTriggerEventCount = (parseHexStrArraytoInt(deviceDataArray.slice(deviceDataIndex, deviceDataIndex + paramLength)) >> 3) & 0x01;
+            bxpTagPayload.motionTriggerEventCount = (parseHexStrArraytoInt(deviceDataArray.slice(deviceDataIndex, deviceDataIndex + paramLength)) >> 4) & 0x01;
+            bxpTagPayload.axisData = (parseHexStrArraytoInt(deviceDataArray.slice(deviceDataIndex, deviceDataIndex + paramLength)) >> 5) & 0x01;
+            bxpTagPayload.battVoltage = (parseHexStrArraytoInt(deviceDataArray.slice(deviceDataIndex, deviceDataIndex + paramLength)) >> 6) & 0x01;
+            bxpTagPayload.tagId = (parseHexStrArraytoInt(deviceDataArray.slice(deviceDataIndex, deviceDataIndex + paramLength)) >> 7) & 0x01;
+            bxpTagPayload.deviceName = (parseHexStrArraytoInt(deviceDataArray.slice(deviceDataIndex, deviceDataIndex + paramLength)) >> 8) & 0x01;
+            bxpTagPayload.rawAdv = (parseHexStrArraytoInt(deviceDataArray.slice(deviceDataIndex, deviceDataIndex + paramLength)) >> 9) & 0x01;
+            bxpTagPayload.rawResp = (parseHexStrArraytoInt(deviceDataArray.slice(deviceDataIndex, deviceDataIndex + paramLength)) >> 10) & 0x01;
+        }
+        deviceDataIndex += paramLength;
+    }
+    data.bxpTagPayload = bxpTagPayload;
+    return JSON.stringify(data);
+}
+
+function parsePIRPayload(deviceDataIndex, deviceDataLength, deviceDataArray, data) {
+    var pirPayload = {};
+    for (; deviceDataIndex < deviceDataLength;) {
+        var paramTag = parseInt(deviceDataArray[deviceDataIndex], 16);
+        deviceDataIndex++;
+        var paramLength = parseHexStrArraytoInt(deviceDataArray.slice(deviceDataIndex, deviceDataIndex + 2));
+        deviceDataIndex += 2;
+        if (paramTag == 0) {
+            pirPayload.rssi = parseHexStrArraytoInt(deviceDataArray.slice(deviceDataIndex, deviceDataIndex + paramLength)) & 0x01;
+            pirPayload.timestamp = (parseHexStrArraytoInt(deviceDataArray.slice(deviceDataIndex, deviceDataIndex + paramLength)) >> 1) & 0x01;
+            pirPayload.pirDelayResponseStatus = (parseHexStrArraytoInt(deviceDataArray.slice(deviceDataIndex, deviceDataIndex + paramLength)) >> 2) & 0x01;
+            pirPayload.doorStatus = (parseHexStrArraytoInt(deviceDataArray.slice(deviceDataIndex, deviceDataIndex + paramLength)) >> 3) & 0x01;
+            pirPayload.sensorSensitivity = (parseHexStrArraytoInt(deviceDataArray.slice(deviceDataIndex, deviceDataIndex + paramLength)) >> 4) & 0x01;
+            pirPayload.sensorDetectionStatus = (parseHexStrArraytoInt(deviceDataArray.slice(deviceDataIndex, deviceDataIndex + paramLength)) >> 5) & 0x01;
+            pirPayload.battVoltage = (parseHexStrArraytoInt(deviceDataArray.slice(deviceDataIndex, deviceDataIndex + paramLength)) >> 6) & 0x01;
+            pirPayload.major = (parseHexStrArraytoInt(deviceDataArray.slice(deviceDataIndex, deviceDataIndex + paramLength)) >> 7) & 0x01;
+            pirPayload.minor = (parseHexStrArraytoInt(deviceDataArray.slice(deviceDataIndex, deviceDataIndex + paramLength)) >> 8) & 0x01;
+            pirPayload.rssi_1m = (parseHexStrArraytoInt(deviceDataArray.slice(deviceDataIndex, deviceDataIndex + paramLength)) >> 9) & 0x01;
+            pirPayload.txPower = (parseHexStrArraytoInt(deviceDataArray.slice(deviceDataIndex, deviceDataIndex + paramLength)) >> 10) & 0x01;
+            pirPayload.advName = (parseHexStrArraytoInt(deviceDataArray.slice(deviceDataIndex, deviceDataIndex + paramLength)) >> 11) & 0x01;
+            pirPayload.rawAdv = (parseHexStrArraytoInt(deviceDataArray.slice(deviceDataIndex, deviceDataIndex + paramLength)) >> 12) & 0x01;
+            pirPayload.rawResp = (parseHexStrArraytoInt(deviceDataArray.slice(deviceDataIndex, deviceDataIndex + paramLength)) >> 13) & 0x01;
+        }
+        deviceDataIndex += paramLength;
+    }
+    data.pirPayload = pirPayload;
+    return JSON.stringify(data);
+}
+
+function parseTOFPayload(deviceDataIndex, deviceDataLength, deviceDataArray, data) {
+    var tofPayload = {};
+    for (; deviceDataIndex < deviceDataLength;) {
+        var paramTag = parseInt(deviceDataArray[deviceDataIndex], 16);
+        deviceDataIndex++;
+        var paramLength = parseHexStrArraytoInt(deviceDataArray.slice(deviceDataIndex, deviceDataIndex + 2));
+        deviceDataIndex += 2;
+        if (paramTag == 0) {
+            tofPayload.rssi = parseHexStrArraytoInt(deviceDataArray.slice(deviceDataIndex, deviceDataIndex + paramLength)) & 0x01;
+            tofPayload.timestamp = (parseHexStrArraytoInt(deviceDataArray.slice(deviceDataIndex, deviceDataIndex + paramLength)) >> 1) & 0x01;
+            tofPayload.manufacturerVendorCode = (parseHexStrArraytoInt(deviceDataArray.slice(deviceDataIndex, deviceDataIndex + paramLength)) >> 2) & 0x01;
+            tofPayload.battVoltage = (parseHexStrArraytoInt(deviceDataArray.slice(deviceDataIndex, deviceDataIndex + paramLength)) >> 3) & 0x01;
+            tofPayload.userData = (parseHexStrArraytoInt(deviceDataArray.slice(deviceDataIndex, deviceDataIndex + paramLength)) >> 4) & 0x01;
+            tofPayload.randingDistance = (parseHexStrArraytoInt(deviceDataArray.slice(deviceDataIndex, deviceDataIndex + paramLength)) >> 5) & 0x01;
+            tofPayload.rawAdv = (parseHexStrArraytoInt(deviceDataArray.slice(deviceDataIndex, deviceDataIndex + paramLength)) >> 6) & 0x01;
+            tofPayload.rawResp = (parseHexStrArraytoInt(deviceDataArray.slice(deviceDataIndex, deviceDataIndex + paramLength)) >> 7) & 0x01;
+        }
+        deviceDataIndex += paramLength;
+    }
+    data.tofPayload = tofPayload;
+    return JSON.stringify(data);
+}
+
+function parseOtherPayload(deviceDataIndex, deviceDataLength, deviceDataArray, data) {
+    var otherPayload = {};
+    var array = [];
+    for (; deviceDataIndex < deviceDataLength;) {
+        var paramTag = parseInt(deviceDataArray[deviceDataIndex], 16);
+        deviceDataIndex++;
+        var paramLength = parseHexStrArraytoInt(deviceDataArray.slice(deviceDataIndex, deviceDataIndex + 2));
+        deviceDataIndex += 2;
+        if (paramTag == 0) {
+            otherPayload.rssi = parseHexStrArraytoInt(deviceDataArray.slice(deviceDataIndex, deviceDataIndex + paramLength)) & 0x01;
+            otherPayload.timestamp = (parseHexStrArraytoInt(deviceDataArray.slice(deviceDataIndex, deviceDataIndex + paramLength)) >> 1) & 0x01;
+            otherPayload.rawAdv = (parseHexStrArraytoInt(deviceDataArray.slice(deviceDataIndex, deviceDataIndex + paramLength)) >> 2) & 0x01;
+            otherPayload.rawResp = (parseHexStrArraytoInt(deviceDataArray.slice(deviceDataIndex, deviceDataIndex + paramLength)) >> 3) & 0x01;
+        } else if (paramTag == 1) {
+            var item = {};
+            item.type = deviceDataArray[deviceDataIndex];
+            item.start = parseInt(deviceDataArray[deviceDataIndex + 1], 16);
+            item.end = parseInt(deviceDataArray[deviceDataIndex + 2], 16);
+            item.data = deviceDataArray.slice(deviceDataIndex + 3, deviceDataIndex + paramLength).join("");
+            array.push(item);
+        }
+        deviceDataIndex += paramLength;
+    }
+    otherPayload.array = array
+    data.otherPayload = otherPayload;
+    return JSON.stringify(data);
+}
+
+// =======================
+function parseFixData(deviceDataIndex, deviceDataLength, deviceDataArray, data) {
+    var fixData = {};
+    for (; deviceDataIndex < deviceDataLength;) {
+        var paramTag = parseInt(deviceDataArray[deviceDataIndex], 16);
+        deviceDataIndex++;
+        var paramLength = parseHexStrArraytoInt(deviceDataArray.slice(deviceDataIndex, deviceDataIndex + 2));
+        deviceDataIndex += 2;
+        if (paramTag == 0) {
+            fixData.timestamp = parseHexStrArraytoInt(deviceDataArray.slice(deviceDataIndex, deviceDataIndex + paramLength));
+            fixData.current_time = parse_time(fixData.timestamp, 0);
+        } else if (paramTag == 1) {
+            fixData.fixMode = fixModeNotifyArray[parseInt(deviceDataArray[deviceDataIndex], 16)];
+        } else if (paramTag == 2) {
+            fixData.fixResult = fixResultArray[parseInt(deviceDataArray[deviceDataIndex], 16)];
+        } else if (paramTag == 3) {
+            fixData.longitude = Number(signedHexToInt(deviceDataArray.slice(deviceDataIndex, deviceDataIndex + paramLength - 4).join("")) * 0.0000001).toFixed(7);
+            fixData.latitude = Number(signedHexToInt(deviceDataArray.slice(deviceDataIndex + 4, deviceDataIndex + paramLength).join("")) * 0.0000001).toFixed(7);
+        } else if (paramTag == 4) {
+            fixData.tac_lac = parseHexStrArraytoInt(deviceDataArray.slice(deviceDataIndex, deviceDataIndex + paramLength)) & 0xFFFF;
+            fixData.ci = (parseHexStrArraytoInt(deviceDataArray.slice(deviceDataIndex, deviceDataIndex + paramLength)) >> 4) & 0xFFFFFFFF;
+        }
+        deviceDataIndex += paramLength;
+    }
+    data.fixData = fixData;
+    return JSON.stringify(data);
+}
+
+function parseScanDevices(deviceDataIndex, deviceDataLength, deviceDataArray, data) {
+    var deviceArray = [];
+    var deviceItem = {};
+    for (; deviceDataIndex < deviceDataLength;) {
+        var paramTag = parseInt(deviceDataArray[deviceDataIndex], 16);
+        deviceDataIndex++;
+        if (paramTag == 0) {
+            // typeCode
+            // var paramLength = parseHexStrArraytoInt(deviceDataArray.slice(deviceDataIndex, deviceDataIndex + 2));
+            if (Object.keys(deviceItem).length != 0) {
+                deviceArray.push(deviceItem);
+            }
+            deviceItem = {};
+            deviceDataIndex += 2;
+            deviceItem.typeCode = parseInt(deviceDataArray[deviceDataIndex], 16);
+            deviceItem.type = typeCodeArray[deviceItem.typeCode];
+            deviceDataIndex++;
+        } else if (paramTag == 0x01) {
+            // mac
+            // var paramLength = parseHexStrArraytoInt(deviceDataArray.slice(deviceDataIndex, deviceDataIndex + 2));
+            deviceDataIndex += 2;
+            deviceItem.mac = deviceDataArray.slice(deviceDataIndex, deviceDataIndex + 6).join("");
+            deviceDataIndex += 6;
+        } else if (paramTag == 0x02) {
+            // connectable
+            // var paramLength = parseHexStrArraytoInt(deviceDataArray.slice(deviceDataIndex, deviceDataIndex + 2));
+            deviceDataIndex += 2;
+            deviceItem.connectable = parseInt(deviceDataArray[deviceDataIndex], 16) == 0 ? "Unconnectable" : "Connectable";
+            deviceDataIndex++;
+        } else if (paramTag == 0x03) {
+            // timestamp
+            // var paramLength = parseHexStrArraytoInt(deviceDataArray.slice(deviceDataIndex, deviceDataIndex + 2));
+            deviceDataIndex += 2;
+            deviceItem.timestamp = parseHexStrArraytoInt(deviceDataArray.slice(deviceDataIndex, deviceDataIndex + 4));
+            deviceDataIndex += 4;
+            deviceItem.timezone = parseInt(deviceDataArray[deviceDataIndex], 16);
+            deviceDataIndex++;
+            deviceItem.current_time = parse_time(deviceItem.timestamp, deviceItem.timezone);
+        } else if (paramTag == 0x04) {
+            // rssi
+            // var paramLength = parseHexStrArraytoInt(deviceDataArray.slice(deviceDataIndex, deviceDataIndex + 2));
+            deviceDataIndex += 2;
+            deviceItem.rssi = parseInt(deviceDataArray[deviceDataIndex], 16) - 256;
+            deviceDataIndex++;
+        } else if (paramTag == 0x05) {
+            // adv_packet
+            var paramLength = parseHexStrArraytoInt(deviceDataArray.slice(deviceDataIndex, deviceDataIndex + 2));
+            deviceDataIndex += 2;
+            deviceItem.advPacket = deviceDataArray.slice(deviceDataIndex, deviceDataIndex + paramLength).join("");
+            deviceDataIndex += paramLength;
+        } else if (paramTag == 0x06) {
+            // response_packet
+            var paramLength = parseHexStrArraytoInt(deviceDataArray.slice(deviceDataIndex, deviceDataIndex + 2));
+            deviceDataIndex += 2;
+            deviceItem.responsePacket = deviceDataArray.slice(deviceDataIndex, deviceDataIndex + paramLength).join("");
+            deviceDataIndex += paramLength;
+        } else if (paramTag >= 0x0A) {
+            // 需要根据typeCode判断
+            var paramLength = parseHexStrArraytoInt(deviceDataArray.slice(deviceDataIndex, deviceDataIndex + 2));
+            deviceDataIndex += 2;
+            if (deviceItem.typeCode == 0) {
+                parseIbeacon(deviceItem, paramTag, deviceDataArray, deviceDataIndex, paramLength);
+            } else if (deviceItem.typeCode == 1) {
+                parseEddystoneUID(deviceItem, paramTag, deviceDataArray, deviceDataIndex, paramLength);
+            } else if (deviceItem.typeCode == 2) {
+                parseEddystoneURL(deviceItem, paramTag, deviceDataArray, deviceDataIndex, paramLength);
+            } else if (deviceItem.typeCode == 3) {
+                parseEddystoneTLM(deviceItem, paramTag, deviceDataArray, deviceDataIndex, paramLength);
+            } else if (deviceItem.typeCode == 4) {
+                parseDeviceInfo(deviceItem, paramTag, deviceDataArray, deviceDataIndex, paramLength);
+            } else if (deviceItem.typeCode == 5) {
+                parseBXPACC(deviceItem, paramTag, deviceDataArray, deviceDataIndex, paramLength);
+            } else if (deviceItem.typeCode == 6) {
+                parseBXPTH(deviceItem, paramTag, deviceDataArray, deviceDataIndex, paramLength);
+            } else if (deviceItem.typeCode == 7) {
+                parseBXPButton(deviceItem, paramTag, deviceDataArray, deviceDataIndex, paramLength);
+            } else if (deviceItem.typeCode == 8) {
+                parseBXPTag(deviceItem, paramTag, deviceDataArray, deviceDataIndex, paramLength);
+            } else if (deviceItem.typeCode == 9) {
+                parsePIR(deviceItem, paramTag, deviceDataArray, deviceDataIndex, paramLength);
+            } else if (deviceItem.typeCode == 11) {
+                parseTOF(deviceItem, paramTag, deviceDataArray, deviceDataIndex, paramLength);
+            } else if (deviceItem.typeCode == 10) {
+                parseOther(deviceItem, paramTag, deviceDataArray, deviceDataIndex, paramLength);
+            }
+            deviceDataIndex += paramLength;
+        }
+    }
+    if (Object.keys(deviceItem).length != 0) {
+        deviceArray.push(deviceItem);
+    }
+    data.deviceArray = deviceArray;
+    return JSON.stringify(data);
+}
+
+// =======================
 function parseIbeacon(deviceItem, paramTag, deviceDataArray, deviceDataIndex, paramLength) {
     if (paramTag == 0x0A) {
         deviceItem.uuid = deviceDataArray.slice(deviceDataIndex, deviceDataIndex + paramLength).join("");
@@ -186,14 +1793,13 @@ function parseEddystoneURL(deviceItem, paramTag, deviceDataArray, deviceDataInde
     }
 }
 
-
 function parseEddystoneTLM(deviceItem, paramTag, deviceDataArray, deviceDataIndex, paramLength) {
     if (paramTag == 0x0A) {
         deviceItem.tlmVersion = parseHexStrArraytoInt(deviceDataArray.slice(deviceDataIndex, deviceDataIndex + paramLength));
     } else if (paramTag == 0x0B) {
         deviceItem.battVoltage = parseHexStrArraytoInt(deviceDataArray.slice(deviceDataIndex, deviceDataIndex + paramLength)) + "mV";
     } else if (paramTag == 0x0C) {
-        deviceItem.temperature = Number(signedHexToInt(deviceDataArray.slice(deviceDataIndex, deviceDataIndex + paramLength) / 256).toFixed(1).join("")) + "℃";
+        deviceItem.temperature = Number(signedHexToInt(deviceDataArray.slice(deviceDataIndex, deviceDataIndex + paramLength).join("")) / 256).toFixed(1) + "℃";
     } else if (paramTag == 0x0D) {
         deviceItem.advCnt = parseHexStrArraytoInt(deviceDataArray.slice(deviceDataIndex, deviceDataIndex + paramLength));
     } else if (paramTag == 0x0E) {
@@ -247,6 +1853,7 @@ function parseBXPACC(deviceItem, paramTag, deviceDataArray, deviceDataIndex, par
         deviceItem.battVoltage = parseHexStrArraytoInt(deviceDataArray.slice(deviceDataIndex, deviceDataIndex + paramLength)) + "mV";
     }
 }
+
 function parseBXPTH(deviceItem, paramTag, deviceDataArray, deviceDataIndex, paramLength) {
     if (paramTag == 0x0A) {
         deviceItem.txPower = signedHexToInt(deviceDataArray[deviceDataIndex]);
@@ -319,7 +1926,6 @@ function parseBXPTag(deviceItem, paramTag, deviceDataArray, deviceDataIndex, par
         deviceItem.devName = hexStrToString(deviceDataArray.slice(deviceDataIndex, deviceDataIndex + paramLength));
     }
 }
-
 
 function parsePIR(deviceItem, paramTag, deviceDataArray, deviceDataIndex, paramLength) {
     if (paramTag == 0x0A) {
@@ -395,16 +2001,16 @@ function signedHexToInt(hexStr) {
         twoStr = parseInt(twoStr, 2); // 二进制转十进制
         return twoStr;
     }
-    // 负数
+    // // 负数
     var twoStr_unsign = "";
     twoStr = parseInt(twoStr, 2) - 1; // 补码：(负数)反码+1，符号位不变；相对十进制来说也是 +1，但这里是负数，+1就是绝对值数据-1
     twoStr = twoStr.toString(2);
     twoStr_unsign = twoStr.substring(1, bitNum); // 舍弃首位(符号位)
-    // 去除首字符，将0转为1，将1转为0   反码
+    // // 去除首字符，将0转为1，将1转为0   反码
     twoStr_unsign = twoStr_unsign.replace(/0/g, "z");
     twoStr_unsign = twoStr_unsign.replace(/1/g, "0");
     twoStr_unsign = twoStr_unsign.replace(/z/g, "1");
-    twoStr = parseInt(-twoStr_unsign, 2);
+    twoStr = -parseInt(twoStr_unsign, 2);
     return twoStr;
 }
 
@@ -492,7 +2098,6 @@ function parse_time(timestamp, timezone) {
 function formatNumber(number) {
     return number < 10 ? "0" + number : number;
 }
-
 
 /**
  * @description: 执行handlePayload方法
