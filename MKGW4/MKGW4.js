@@ -2001,12 +2001,12 @@ function signedHexToInt(hexStr) {
         twoStr = parseInt(twoStr, 2); // 二进制转十进制
         return twoStr;
     }
-    // // 负数
+    // 负数
     var twoStr_unsign = "";
     twoStr = parseInt(twoStr, 2) - 1; // 补码：(负数)反码+1，符号位不变；相对十进制来说也是 +1，但这里是负数，+1就是绝对值数据-1
     twoStr = twoStr.toString(2);
     twoStr_unsign = twoStr.substring(1, bitNum); // 舍弃首位(符号位)
-    // // 去除首字符，将0转为1，将1转为0   反码
+    // 去除首字符，将0转为1，将1转为0   反码
     twoStr_unsign = twoStr_unsign.replace(/0/g, "z");
     twoStr_unsign = twoStr_unsign.replace(/1/g, "0");
     twoStr_unsign = twoStr_unsign.replace(/z/g, "1");
