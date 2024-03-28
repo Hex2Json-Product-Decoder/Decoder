@@ -1,13 +1,21 @@
-
-var heartbeatArray = ["Heartbeat", "Low power"];
+var heartbeatArray = ["Heartbeat", "Low power", "ble downlink connect", "downlink payload"];
 var shutdownModeArray = ["Ble cmd", "Lora downlink", "Long-press button", "Low power"];
-var alarmStatusArray = ["No", "SOS(unconfirm ack state)", "SOS(confirm ack state)", "Self test", "Test"];
+var beaconAlarmStatusArray = ["No", "SOS(unconfirm ack state)", "SOS(confirm ack state)", "Self test", "Test"];
 var keyStateArray = ["Initial", "Updated"];
 var connectResultArray = ["Success", "Unconnectable", "Exceeds max connection", "Connected", "Exceed range", "Cannot connect", "Failed", "Type error", "Verify error"];
 var disconnectReasonArray = ["Abnormal", "Timeout", "Active"];
 var resultArray = ["Success", "Disconnected", "Commond invalid"];
 var alarmStatusArray = ["Success", "Disconnected", "Commond invalid"];
-var batchUpdateResultArray = ["Exceed range", "Connect failed", "Verify failed", "Updateƒ failed"];
+var batchUpdateResultArray = ["Exceed range", "Connect failed", "Verify failed", "Update failed"];
+// Decode uplink function.
+//
+// Input is an object with the following fields:
+// - bytes = Byte array containing the uplink payload, e.g. [255, 230, 255, 0]
+// - fPort = Uplink fPort.
+// - variables = Object containing the configured device variables.
+//
+// Output must be an object with the following fields:
+// - data = Object representing the decoded payload.
 function decodeUplink(input) {
     var bytes = input.bytes;
     var fPort = input.fPort;
@@ -19,55 +27,54 @@ function decodeUplink(input) {
     }
     data.port = fPort;
     data.hex_format_payload = bytesToHexString(bytes, 0, bytes.length);
-    if (fPort == 1 || fPort == 2 || fPort == 3 || fPort == 4
-        || fPort == 5 || fPort == 8 || fPort == 9) {
-        data.charging_status = bytes[0] & 0x80 ? "charging" : "no charging";
-        data.batt_level = (bytes[0] & 0x7F) + "%";
-    }
+    // if (fPort == 1 || fPort == 2 || fPort == 3 || fPort == 4
+    //     || fPort == 5 || fPort == 8 || fPort == 9) {
+    //     data.charging_status = bytes[0] & 0x80 ? "charging" : "no charging";
+    //     data.batt_level = (bytes[0] & 0x7F) + "%";
+    // }
     if (fPort == 1) {
         // Heartbeat
         var firmware_ver_major = (bytes[0] >> 6) & 0x03;
         var firmware_ver_minor = (bytes[0] >> 4) & 0x03;
         var firmware_ver_patch = bytes[0] & 0x0f;
         data.firmware_version = "V" + firmware_ver_major + "." + firmware_ver_minor + "." + firmware_ver_patch;
-        var hardware_ver_major = (bytes[1] >> 4) & 0x0f;
-        var hardware_ver_patch = bytes[1] & 0x0f;
-        data.hardware_version = "V" + hardware_ver_major + "." + hardware_ver_patch;
-        data.batt_v = bytesToInt(bytes, 2, 4) + "mV";
-        data.msg_type = fixModeArray[bytes[4]];
+        // var hardware_ver_major = (bytes[1] >> 4) & 0x0f;
+        // var hardware_ver_patch = bytes[1] & 0x0f;
+        // data.hardware_version = "V" + hardware_ver_major + "." + hardware_ver_patch;
+        data.batt_v = bytesToInt(bytes, 1, 2) + "mV";
+        data.heartbeat_reaon = heartbeatArray[bytes[3]];
     }
     else if (fPort == 2) {
         // Shutdown
         data.timestamp = bytesToInt(bytes, 0, 4);
         data.current_time = parse_time(data.timestamp);
-        data.batt_v = bytesToInt(bytes, 4, 6) + "mV";
+        data.batt_v = bytesToInt(bytes, 4, 2) + "mV";
         data.shutdown_mode = shutdownModeArray[bytes[6]];
     }
     else if (fPort == 3) {
         // Scan data
-        var num = bytes[0] & 0xff;
+        var datalen = bytes.length;
         var dev_array = [];
-        if (num > 0) {
-            for (var i = 0; i < num;) {
-                var len = bytes[i++] & 0xff;
-                var dev_type = bytes[i++] & 0xff;
-                var data_len = bytes[i++] & 0xff;
-                var raw_bytes = bytes.slice(i, i + data_len);
-                var item = parseScanData(dev_type, raw_bytes);
-                dev_array.push(item);
-                i += data_len;
-            }
+        for (var i = 0; i < datalen;) {
+            var len = bytes[i++] & 0xff;
+            // var dev_type = bytes[i++] & 0xff;
+            // var data_len = bytes[i++] & 0xff;
+            var raw_bytes = bytes.slice(i, i + len);
+            var item = parseScanData(raw_bytes);
+            // dev_array.push(JSON.stringify(item));
+            dev_array.push(item);
+            i += len;
         }
         data.dev_array = dev_array;
     }
     else if (fPort == 5) {
         // Battery consumption
         data.working_hours = bytesToInt(bytes, 0, 4);
-        data.ble_adv_count = bytesToInt(bytes, 4, 8);
-        data.ble_scan_time = bytesToInt(bytes, 8, 12);
-        data.lorawan_send_times = bytesToInt(bytes, 12, 16);
-        data.lorawan_send_receive_consumption = bytesToInt(bytes, 16, 20) + "mAS";
-        data.battery_consumption = (bytesToInt(bytes, 20, 24) * 0.001) + "mAH";
+        data.ble_adv_count = bytesToInt(bytes, 4, 4);
+        data.ble_scan_time = bytesToInt(bytes, 8, 4);
+        data.lorawan_send_times = bytesToInt(bytes, 12, 4);
+        data.lorawan_send_receive_consumption = bytesToInt(bytes, 16, 4) + "mAS";
+        data.battery_consumption = (bytesToInt(bytes, 20, 4) * 0.001) + "mAH";
     }
     // else if (fPort == 6) {
     //     // BLE Control
@@ -85,10 +92,10 @@ function decodeUplink(input) {
         var cmd = bytesToInt(bytes, 0, 2);
         // var cmd_type = (cmd >> 12) & 0x0f;
         // var cmd_offset = cmd & 0x0fff
-        data.cmd = cmd;
-        var len = bytes.length;
+        data.cmd = bytesToHexString(bytes, 0, 2);
+        var len = bytesToInt(bytes, 2, 1);
         if (len > 0) {
-            var data_tlv = bytes.slice(2, len);
+            var data_tlv = bytes.slice(3, 3 + len);
             // if (cmd_type == 1) {
             //     // write 
             //     if (len == 4) {
@@ -144,7 +151,7 @@ function decodeUplink(input) {
                     }
                     break;
                 case 0x3102:
-                    var mac_array = {};
+                    var mac_array = [];
                     for (var i = 0; i < data_tlv.length;) {
                         var tlv_tag = data_tlv[i++] & 0xff;
                         var tlv_len = data_tlv[i++] & 0xff;
@@ -283,7 +290,7 @@ function decodeUplink(input) {
                     }
                     break;
                 case 0x3202:
-                    var mac_array = {};
+                    var mac_array = [];
                     for (var i = 0; i < data_tlv.length;) {
                         var tlv_tag = data_tlv[i++] & 0xff;
                         var tlv_len = data_tlv[i++] & 0xff;
@@ -293,6 +300,7 @@ function decodeUplink(input) {
                                 var reason_code = bytesToInt(data_tlv, i + tlv_len - 1, 1);
                                 var reason_msg = batchUpdateResultArray[reason_code];
                                 var item = {};
+                                item.mac = mac;
                                 item.reason_code = reason_code;
                                 item.reason_msg = reason_msg;
                                 mac_array.push(item);
@@ -311,36 +319,39 @@ function decodeUplink(input) {
     return dev_Info;
 }
 
-function parseScanData(dev_type, raw_bytes) {
+function parseScanData(raw_bytes) {
     var item = {};
     var index = 0;
-    item.dev_type = dev_type;
-    item.timestamp = parseInt(raw_bytes, index, index + 6);
+    item.dev_type = raw_bytes[index++];
+    item.timestamp = parseInt(bytesToHexString(raw_bytes, index, 6), 16);
     index += 6;
-    item.rssi = raw_bytes[index++];
+    item.time = parse_time(item.timestamp);
+    item.rssi = signedHexToInt(raw_bytes[index++].toString(16));
     item.connectable = raw_bytes[index++];
-    item.mac = bytesToHexString(raw_bytes, index, index + 6);
+    item.mac = bytesToHexString(raw_bytes, index, 6);
     index += 6;
-    if (dev_type == 0) {
+    if (item.dev_type == 0) {
         // badge
-        item.bxp_b_timestamp = parseInt(raw_bytes, index, index + 6);
+        item.bxp_b_timestamp = parseInt(bytesToHexString(raw_bytes, index, 6), 16);
         index += 6;
-        item.alarm_status = alarmStatusArray[raw_bytes[index++]];
-        item.alarm_count = parseInt(raw_bytes, index, index + 2);
+        item.bxp_b_time = parse_time(item.bxp_b_timestamp);
+        item.alarm_status_code = raw_bytes[index++];
+        item.alarm_status = beaconAlarmStatusArray[item.alarm_status_code];
+        item.alarm_count = bytesToInt(raw_bytes, index, 2);
         index += 2;
-        item.tag_id = bytesToHexString(raw_bytes, index, index + 3);
+        item.tag_id = bytesToHexString(raw_bytes, index, 3);
         index += 3;
-        item.batt_v = bytesToInt(raw_bytes, index, index + 2) + "mV";
+        item.batt_v = bytesToInt(raw_bytes, index, 2) + "mV";
         index += 2;
         item.key_state = keyStateArray[raw_bytes[index]];
     }
-    else if (dev_type == 1) {
+    else if (item.dev_type == 1) {
         // gateway
         var adv_name_len = raw_bytes[index++] & 0xff;
-        item.adv_name = bytesToString(raw_bytes, index, index + adv_name_len);
+        item.adv_name = bytesToString(raw_bytes, index, adv_name_len);
         index += adv_name_len;
         var firmware_len = raw_bytes[index++] & 0xff;
-        item.firmware = bytesToString(raw_bytes, index, index + firmware_len);
+        item.firmware = bytesToString(raw_bytes, index, firmware_len);
     }
     return item;
 }
@@ -482,3 +493,21 @@ function formatNumber(number) {
  * @description: 执行handlePayload方法
  */
 // execute(handlePayload)
+
+function getData(hex) {
+    var length = hex.length;
+    var datas = [];
+    for (var i = 0; i < length; i += 2) {
+        var start = i;
+        var end = i + 2;
+        var data = parseInt("0x" + hex.substring(start, end));
+        datas.push(data);
+    }
+    return datas;
+}
+
+// console.log(getData("1E000000000140D5A801CEDB0FA177E50000129D313E0000020000010BBC00"));
+// var input = {};
+// input.fPort = 5;
+// input.bytes = getData("00028cee000156ec0557ea9600013ae5001631b700084622");
+// console.log(decodeUplink(input));
