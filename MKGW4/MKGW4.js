@@ -292,9 +292,9 @@ function parseDevStatus(deviceDataIndex, deviceDataLength, deviceDataArray, data
             deviceStatus.battVoltage = parseHexStrArraytoInt(deviceDataArray.slice(deviceDataIndex, deviceDataIndex + paramLength)) + "mV";
         } else if (paramTag == 4) {
             var axis_data_array = deviceDataArray.slice(deviceDataIndex, deviceDataIndex + paramLength);
-            deviceStatus.axisDataX = axis_data_array[0] + "mg";
-            deviceStatus.axisDataY = axis_data_array[1] + "mg";
-            deviceStatus.axisDataZ = axis_data_array[2] + "mg";
+            deviceStatus.axisDataX = axis_data_array.slice(0, 2).join("") + "mg";
+            deviceStatus.axisDataY = axis_data_array.slice(2, 4).join("") + "mg";
+            deviceStatus.axisDataZ = axis_data_array.slice(4, 6).join("") + "mg";
         } else if (paramTag == 5) {
             deviceStatus.accStatus = parseInt(deviceDataArray[deviceDataIndex], 16);
         } else if (paramTag == 6) {
@@ -334,7 +334,7 @@ function parseNTPSettings(deviceDataIndex, deviceDataLength, deviceDataArray, da
         } else if (paramTag == 1) {
             ntp.host = hexStrToString(deviceDataArray.slice(deviceDataIndex, deviceDataIndex + paramLength));
         } else if (paramTag == 2) {
-            ntp.interval = parseInt(deviceDataArray[deviceDataIndex], 16);
+            ntp.interval = parseHexStrArraytoInt(deviceDataArray.slice(deviceDataIndex, deviceDataIndex + 2));
         }
         deviceDataIndex += paramLength;
     }
@@ -352,7 +352,7 @@ function parseTime(deviceDataIndex, deviceDataLength, deviceDataArray, data) {
         if (paramTag == 0) {
             currentTime.timestamp = parseHexStrArraytoInt(deviceDataArray.slice(deviceDataIndex, deviceDataIndex + paramLength));
         } else if (paramTag == 1) {
-            currentTime.timezone = signedHexToInt(deviceDataArray[deviceDataIndex]);
+            currentTime.timezone = parseInt(deviceDataArray[deviceDataIndex], 16);
             currentTime.timeStr = parse_time(currentTime.timestamp, currentTime.timezone);
         }
         deviceDataIndex += paramLength;
@@ -777,7 +777,7 @@ function parseFilterRssi(deviceDataIndex, deviceDataLength, deviceDataArray, dat
         var paramLength = parseHexStrArraytoInt(deviceDataArray.slice(deviceDataIndex, deviceDataIndex + 2));
         deviceDataIndex += 2;
         if (paramTag == 0) {
-            filter.rssi = signedHexToInt(deviceDataArray[deviceDataIndex], 16);
+            filter.rssi = signedHexToInt(deviceDataArray[deviceDataIndex]);
         }
         deviceDataIndex += paramLength;
     }
@@ -1660,6 +1660,8 @@ function parseFixData(deviceDataIndex, deviceDataLength, deviceDataArray, data) 
         } else if (paramTag == 4) {
             fixData.tac_lac = parseHexStrArraytoInt(deviceDataArray.slice(deviceDataIndex, deviceDataIndex + paramLength)) & 0xFFFF;
             fixData.ci = (parseHexStrArraytoInt(deviceDataArray.slice(deviceDataIndex, deviceDataIndex + paramLength)) >> 4) & 0xFFFFFFFF;
+        } else if (paramTag == 5) {
+            fixData.hdop = Number(parseInt(deviceDataArray[deviceDataIndex], 16) * 0.1).toFixed(1);
         }
         deviceDataIndex += paramLength;
     }
@@ -1723,7 +1725,27 @@ function parseScanDevices(deviceDataIndex, deviceDataLength, deviceDataArray, da
             deviceDataIndex += 2;
             deviceItem.responsePacket = deviceDataArray.slice(deviceDataIndex, deviceDataIndex + paramLength).join("");
             deviceDataIndex += paramLength;
-        } else if (paramTag >= 0x0A) {
+        } else if (paramTag == 0xA0) {
+            // max_rssi
+            deviceDataIndex += 2;
+            deviceItem.max_rssi = parseInt(deviceDataArray[deviceDataIndex], 16) - 256;
+            deviceDataIndex++;
+        } else if (paramTag == 0xA1) {
+            // min_rssi
+            deviceDataIndex += 2;
+            deviceItem.min_rssi = parseInt(deviceDataArray[deviceDataIndex], 16) - 256;
+            deviceDataIndex++;
+        } else if (paramTag == 0xA2) {
+            // avg_rssi
+            deviceDataIndex += 2;
+            deviceItem.avg_rssi = parseInt(deviceDataArray[deviceDataIndex], 16) - 256;
+            deviceDataIndex++;
+        } else if (paramTag == 0xA3) {
+            // scan_num
+            deviceDataIndex += 2;
+            deviceItem.scan_num = parseHexStrArraytoInt(deviceDataArray.slice(deviceDataIndex, deviceDataIndex + 4));
+            deviceDataIndex += 4;
+        } else if (paramTag >= 0x0A && paramTag < 0xA0) {
             // 需要根据typeCode判断
             var paramLength = parseHexStrArraytoInt(deviceDataArray.slice(deviceDataIndex, deviceDataIndex + 2));
             deviceDataIndex += 2;

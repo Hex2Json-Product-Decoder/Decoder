@@ -5,7 +5,7 @@ var keyStateArray = ["Initial", "Updated"];
 var connectResultArray = ["Success", "Unconnectable", "Exceeds max connection", "Connected", "Exceed range", "Cannot connect", "Failed", "Type error", "Verify error"];
 var disconnectReasonArray = ["Abnormal", "Timeout", "Active"];
 var resultArray = ["Success", "Disconnected", "Commond invalid"];
-var alarmStatusArray = ["Success", "Disconnected", "Commond invalid"];
+var alarmStatusArray = ["No", "SOS(unconfirm ack state)", "SOS(confirm ack state)", "Self test"];
 var batchUpdateResultArray = ["Exceed range", "Connect failed", "Verify failed", "Update failed"];
 // Decode uplink function.
 //
@@ -310,6 +310,19 @@ function decodeUplink(input) {
                     }
                     data.mac_array = mac_array;
                     break;
+                case 0x2102:
+                    var mac_array = [];
+                    for (var i = 0; i < data_tlv.length;) {
+                        var tlv_tag = data_tlv[i++] & 0xff;
+                        var tlv_len = data_tlv[i++] & 0xff;
+                        switch (tlv_tag) {
+                            case 0x00:
+                                data.mac = bytesToHexString(data_tlv, i, tlv_len);
+                                break;
+                        }
+                        i += tlv_len;
+                    }
+                    break;
             }
         }
         // }
@@ -344,6 +357,12 @@ function parseScanData(raw_bytes) {
         item.batt_v = bytesToInt(raw_bytes, index, 2) + "mV";
         index += 2;
         item.key_state = keyStateArray[raw_bytes[index]];
+        index += 1;
+        var firmware_ver_major = (raw_bytes[index] >> 4) & 0x0f;
+        var firmware_ver_minor = raw_bytes[index] & 0x0f;
+        index += 1;
+        var firmware_ver_patch = raw_bytes[index] & 0xffff;
+        item.firmware_version = "V" + firmware_ver_major + "." + firmware_ver_minor + "." + firmware_ver_patch;
     }
     else if (item.dev_type == 1) {
         // gateway
@@ -466,6 +485,8 @@ function extractBitFromHexStr(hexStr, bitNum) {
 }
 
 function parse_time(timestamp) {
+    if (timestamp < 0xFFFFFFFF)
+        timestamp = timestamp * 1000;
     var d = new Date(timestamp);
 
     var time_str = "";
@@ -481,12 +502,17 @@ function parse_time(timestamp) {
     time_str += formatNumber(d.getUTCMinutes());
     time_str += ":";
     time_str += formatNumber(d.getUTCSeconds());
-
+    time_str += ".";
+    time_str += formatNumber2(d.getUTCMilliseconds());
     return time_str;
 }
 
 function formatNumber(number) {
     return number < 10 ? "0" + number : number;
+}
+
+function formatNumber2(number) {
+    return number < 10 ? "00" + number : (number < 100 ? "0" + number : number);
 }
 
 /**
@@ -508,6 +534,6 @@ function getData(hex) {
 
 // console.log(getData("1E000000000140D5A801CEDB0FA177E50000129D313E0000020000010BBC00"));
 // var input = {};
-// input.fPort = 5;
-// input.bytes = getData("00028cee000156ec0557ea9600013ae5001631b700084622");
+// input.fPort = 3;
+// input.bytes = getData("1e00018e884dc300c701d77931d426f1018e884dc75900000c0000010bc200");
 // console.log(decodeUplink(input));
