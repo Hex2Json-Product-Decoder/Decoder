@@ -134,7 +134,7 @@ function decodeUplink(input) {
 }
 
 /*********************Port Parse*************************/
-function parse_port1_data(data, bytes, Port) {
+function parse_port1_data(data, bytes, port) {
     var obj = {};
     var rebootReasonCode = bytesToInt(bytes, 0, 1);
     // data.obj.reboot_reason_code = rebootReasonCode;
@@ -229,19 +229,21 @@ function parse_port12_data(data, bytes, port) {
     data.obj = obj;
 }
 
-function parse_port13_data(data, bytes, Port) {
+function parse_port13_data(data, bytes, port) {
     var obj = {};
     obj.index = bytes[0];
     var number = bytes[1];
+    var packetNum = bytes[2];
     var data_list = [];
-    bytes = bytes.slice(2);
+    obj.packetNum = packetNum;
+    bytes = bytes.slice(3);
     for (var i = 0; i < number; i++) {
         var sub_bytes = bytes.slice((i * 8), (i * 8 + 8));
-        var beaconIndex = bytesToInt(sub_bytes,0,1);
-        var mac_address = bytesToHexString(sub_bytes,1,6);
-        var rssi = bytesToInt(sub_bytes,7,1) - 256 + 'dBm';
+        var beaconIndex = bytesToInt(sub_bytes, 0, 1);
+        var mac_address = bytesToHexString(sub_bytes, 1, 6);
+        var rssi = bytesToInt(sub_bytes, 7, 1) - 256 + 'dBm';
         var data_dic = {
-            'beaconIndex':beaconIndex,
+            'beaconIndex': beaconIndex,
             'mac_address': mac_address,
             'rssi': rssi,
         };
