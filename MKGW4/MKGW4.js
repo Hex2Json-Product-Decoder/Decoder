@@ -1659,7 +1659,7 @@ function parseFixData(deviceDataIndex, deviceDataLength, deviceDataArray, data) 
             fixData.latitude = Number(signedHexToInt(deviceDataArray.slice(deviceDataIndex + 4, deviceDataIndex + paramLength).join("")) * 0.0000001).toFixed(7);
         } else if (paramTag == 4) {
             fixData.tac_lac = parseHexStrArraytoInt(deviceDataArray.slice(deviceDataIndex, deviceDataIndex + paramLength)) & 0xFFFF;
-            fixData.ci = (parseHexStrArraytoInt(deviceDataArray.slice(deviceDataIndex, deviceDataIndex + paramLength)) >> 4) & 0xFFFFFFFF;
+            fixData.ci = (parseHexStrArraytoInt(deviceDataArray.slice(deviceDataIndex, deviceDataIndex + paramLength)) >> 16) & 0xFFFFFFFF;
         } else if (paramTag == 5) {
             fixData.hdop = Number(parseInt(deviceDataArray[deviceDataIndex], 16) * 0.1).toFixed(1);
         }
@@ -1797,7 +1797,7 @@ function parseIbeacon(deviceItem, paramTag, deviceDataArray, deviceDataIndex, pa
     }
 }
 
-function parseEddystoneUID(paramTag, deviceDataArray, deviceDataIndex, paramLength) {
+function parseEddystoneUID(deviceItem, paramTag, deviceDataArray, deviceDataIndex, paramLength) {
     if (paramTag == 0x0A) {
         deviceItem.namespace = deviceDataArray.slice(deviceDataIndex, deviceDataIndex + paramLength).join("");
     } else if (paramTag == 0x0B) {
@@ -2125,3 +2125,18 @@ function formatNumber(number) {
  * @description: 执行handlePayload方法
  */
 execute(handlePayload)
+
+// function getData(hex) {
+// 	var length = hex.length;
+// 	var datas = [];
+// 	for (var i = 0; i < length; i += 2) {
+// 		var start = i;
+// 		var end = i + 2;
+// 		var data = parseInt("0x" + hex.substring(start, end));
+// 		datas.push(data);
+// 	}
+// 	return datas;
+// }
+
+// var bytes = "ef30 a0d9 1e5d 4026 6302 a800 0001 0601 0006 e1ce 642c 70b9 0200 0101 0300 0567 089a 9c00 0400 01bb 0a00 01fc 0b00 01e5 0c00 010a 0d00 0201 0b0e 0002 0224 0f00 020c 0e00 0001 0201 0006 e1ce 642c 70b9 0200 0101 0300 0567 089a 9c00 0400 01b9 0a00 1668 7474 7073 3a2f 2f77 7777 2e67 6f6f 676c 652e 636f 6d0b 0001 0000 0001 0101 0006 e1ce 642c 70b9 0200 0101 0300 0567 089a 9c00 0400 01bd 0b00 0100 0a00 0a11 1122 2233 3344 4455 550c 0006 1212 1212 1212 0000 0106 0100 06e1 ce64 2c70 b902 0001 0103 0005 6708 9a9d 0004 0001 b60a 0001 fc0b 0001 e50c 0001 0a0d 0002 010a 0e00 0202 270f 0002 0c0e 0000 0102 0100 06e1 ce64 2c70 b902 0001 0103 0005 6708 9a9e 0004 0001 be0a 0016 6874 7470 733a 2f2f 7777 772e 676f 6f67 6c65 2e63 6f6d 0b00 0100 0000 0106 0100 06e1 ce64 2c70 b902 0001 0103 0005 6708 9a9f 0004 0001 b90a 0001 fc0b 0001 e50c 0001 0a0d 0002 010a 0e00 0202 290f 0002 0c0e 0000 0101 0100 06e1 ce64 2c70 b902 0001 0103 0005 6708 9a9f 0004 0001 bd0b 0001 000a 000a 1111 2222 3333 4444 5555 0c00 0612 1212 1212 1200 0001 0601 0006 e1ce 642c 70b9 0200 0101 0300 0567 089a a000 0400 01b9 0a00 01fc 0b00 01e5 0c00 010a 0d00 0201 0a0e 0002 022b 0f00 020c 0e00 0001 0201 0006 e1ce 642c 70b9 0200 0101 0300 0567 089a a200 0400 01b7 0a00 1668 7474 7073 3a2f 2f77 7777 2e67 6f6f 676c 652e 636f 6d0b 0001 0000 0001 0001 0006 e1ce 642c 70b9 0200 0101 0400 01b8 0500 1e02 0106 1aff 4c00 0215 1111 2222 3333 4444 5555 6666 6666 6666 000a 0014 c50b 0002 000a 0000 0106 0100 06e1 ce64 2c70 b902 0001 0103 0005 6708 9aa3 0004 0001 b50a 0001 fc0b 0001 e50c 0001 0a0d 0002 010b 0e00 0202 2c0f 0002 0c0e 0000 0103 0100 06e1 ce64 2c70 b902 0001 0103 0005 6708 9aa4 0004 0001 be0a 0001 000b 0002 0c0e 0c00 0218 400d 0004 0001 423b 0e00 0400 0284 68";
+// console.log(handlePayload(bytes,0,0));
