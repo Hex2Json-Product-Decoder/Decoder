@@ -1953,7 +1953,7 @@ function parsePIR(deviceItem, paramTag, deviceDataArray, deviceDataIndex, paramL
     if (paramTag == 0x0A) {
         deviceItem.pirDelayResponseStatus = pirDelayResponseStatusArray[parseInt(deviceDataArray[deviceDataIndex], 16)];
     } else if (paramTag == 0x0B) {
-        deviceItem.doorStatus = parseInt(deviceDataArray[deviceDataIndex], 16) == 0 ? "open" : "close";
+        deviceItem.doorStatus = parseInt(deviceDataArray[deviceDataIndex], 16) == 0 ? "close" : "open";
     } else if (paramTag == 0x0C) {
         deviceItem.sensorSensitivity = pirDelayResponseStatusArray[parseInt(deviceDataArray[deviceDataIndex], 16)];
     } else if (paramTag == 0x0D) {
