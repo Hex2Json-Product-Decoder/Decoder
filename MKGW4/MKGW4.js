@@ -6,7 +6,7 @@
 * @return {any} - Payload after script processing
 */
 
-var typeCodeArray = ["ibeacon", "eddystone-uid", "eddystone-url", "eddystone-tlm", "bxp-devifo", "bxp-acc", "bxp-th", "bxp-button", "bxp-tag", "pir", "other", "tof"];
+var typeCodeArray = ["ibeacon", "eddystone-uid", "eddystone-url", "eddystone-tlm", "bxp-devinfo", "bxp-acc", "bxp-th", "bxp-button", "bxp-tag", "pir", "other", "tof"];
 var samplingRateArray = ["1hz", "10hz", "25hz", "50hz", "100hz"];
 var fullScaleArray = ["2g", "4g", "8g", "16g"];
 var frameTypeArray = ["Single press mode", "Double press mode", "Long press mode", "Abnormal"];
@@ -1719,12 +1719,44 @@ function parseScanDevices(deviceDataIndex, deviceDataLength, deviceDataArray, da
             deviceDataIndex += 2;
             deviceItem.advPacket = deviceDataArray.slice(deviceDataIndex, deviceDataIndex + paramLength).join("");
             deviceDataIndex += paramLength;
+            // 020106181601ea803c00000000028c015002cc00c001880d2c000001
+            // if (deviceItem.advPacket != null) {
+            //     var advPacketHexArray = toHexStrArray(deviceItem.advPacket);
+            //     var tagIdLen = parseInt(advPacketHexArray[3], 16) - 21;
+            //     deviceItem.hallSensorStatus = (parseInt(advPacketHexArray[8], 16) & 1) == 1 ? "Open" : "Close";
+            //     deviceItem.axisStatus = (parseInt(advPacketHexArray[8], 16) & 2) == 2 ? "In move" : "In static";
+            //     var accEnable = (parseInt(advPacketHexArray[8], 16) & 4) == 4;
+            //     deviceItem.axisEquippedStatus = accEnable ? "Equipped" : "Not equipped";
+            //     var tempEnable = (parseInt(advPacketHexArray[8], 16) & 8) == 8;
+            //     var humidityEnable = (parseInt(advPacketHexArray[8], 16) & 16) == 16;
+            //     if (accEnable == 1) {
+            //         deviceItem.axisDataX = signedHexToInt(advPacketHexArray.slice(13, 15).join("")) + "mg";
+            //         deviceItem.axisDataY = signedHexToInt(advPacketHexArray.slice(15, 17).join("")) + "mg"
+            //         deviceItem.axisDataZ = signedHexToInt(advPacketHexArray.slice(17, 19).join("")) + "mg"
+            //     }
+            //     if (tempEnable == 1) {
+            //         deviceItem.temperature = Number(signedHexToInt(advPacketHexArray.slice(19, 21).join("")) * 0.1).toFixed(1) + "℃";
+            //     }
+            //     if (humidityEnable == 1) {
+            //         deviceItem.humidity = Number(parseHexStrArraytoInt(advPacketHexArray.slice(21, 23)) * 0.1).toFixed(1) + "%RH";
+            //     }
+            //     deviceItem.hallTriggerEventCount = parseHexStrArraytoInt(advPacketHexArray.slice(9, 11));
+            //     deviceItem.motionTriggerEventCount = parseHexStrArraytoInt(advPacketHexArray.slice(11, 13));
+            //     deviceItem.battVoltage = parseHexStrArraytoInt(advPacketHexArray.slice(23, 25)) + "mV";
+            //     deviceItem.tagId = advPacketHexArray.slice(25, 25 + tagIdLen).join("")
+            //     deviceItem.devName = hexStrToString(advPacketHexArray.slice(27 + tagIdLen, advPacketHexArray.length));
+            // }
         } else if (paramTag == 0x06) {
             // response_packet
             var paramLength = parseHexStrArraytoInt(deviceDataArray.slice(deviceDataIndex, deviceDataIndex + 2));
             deviceDataIndex += 2;
             deviceItem.responsePacket = deviceDataArray.slice(deviceDataIndex, deviceDataIndex + paramLength).join("");
             deviceDataIndex += paramLength;
+            // 0a094d4b2053656e736f72
+            // if (deviceItem.responsePacket != null) {
+            //     var advPacketHexArray = toHexStrArray(deviceItem.responsePacket);
+            //     deviceItem.devName = hexStrToString(advPacketHexArray.slice(2, advPacketHexArray.length));
+            // }
         } else if (paramTag == 0xA0) {
             // max_rssi
             deviceDataIndex += 2;
@@ -2127,16 +2159,16 @@ function formatNumber(number) {
 execute(handlePayload)
 
 // function getData(hex) {
-// 	var length = hex.length;
-// 	var datas = [];
-// 	for (var i = 0; i < length; i += 2) {
-// 		var start = i;
-// 		var end = i + 2;
-// 		var data = parseInt("0x" + hex.substring(start, end));
-// 		datas.push(data);
-// 	}
-// 	return datas;
+//     var length = hex.length;
+//     var datas = [];
+//     for (var i = 0; i < length; i += 2) {
+//         var start = i;
+//         var end = i + 2;
+//         var data = parseInt("0x" + hex.substring(start, end));
+//         datas.push(data);
+//     }
+//     return datas;
 // }
 
-// var bytes = "ef30 a0d9 1e5d 4026 6302 a800 0001 0601 0006 e1ce 642c 70b9 0200 0101 0300 0567 089a 9c00 0400 01bb 0a00 01fc 0b00 01e5 0c00 010a 0d00 0201 0b0e 0002 0224 0f00 020c 0e00 0001 0201 0006 e1ce 642c 70b9 0200 0101 0300 0567 089a 9c00 0400 01b9 0a00 1668 7474 7073 3a2f 2f77 7777 2e67 6f6f 676c 652e 636f 6d0b 0001 0000 0001 0101 0006 e1ce 642c 70b9 0200 0101 0300 0567 089a 9c00 0400 01bd 0b00 0100 0a00 0a11 1122 2233 3344 4455 550c 0006 1212 1212 1212 0000 0106 0100 06e1 ce64 2c70 b902 0001 0103 0005 6708 9a9d 0004 0001 b60a 0001 fc0b 0001 e50c 0001 0a0d 0002 010a 0e00 0202 270f 0002 0c0e 0000 0102 0100 06e1 ce64 2c70 b902 0001 0103 0005 6708 9a9e 0004 0001 be0a 0016 6874 7470 733a 2f2f 7777 772e 676f 6f67 6c65 2e63 6f6d 0b00 0100 0000 0106 0100 06e1 ce64 2c70 b902 0001 0103 0005 6708 9a9f 0004 0001 b90a 0001 fc0b 0001 e50c 0001 0a0d 0002 010a 0e00 0202 290f 0002 0c0e 0000 0101 0100 06e1 ce64 2c70 b902 0001 0103 0005 6708 9a9f 0004 0001 bd0b 0001 000a 000a 1111 2222 3333 4444 5555 0c00 0612 1212 1212 1200 0001 0601 0006 e1ce 642c 70b9 0200 0101 0300 0567 089a a000 0400 01b9 0a00 01fc 0b00 01e5 0c00 010a 0d00 0201 0a0e 0002 022b 0f00 020c 0e00 0001 0201 0006 e1ce 642c 70b9 0200 0101 0300 0567 089a a200 0400 01b7 0a00 1668 7474 7073 3a2f 2f77 7777 2e67 6f6f 676c 652e 636f 6d0b 0001 0000 0001 0001 0006 e1ce 642c 70b9 0200 0101 0400 01b8 0500 1e02 0106 1aff 4c00 0215 1111 2222 3333 4444 5555 6666 6666 6666 000a 0014 c50b 0002 000a 0000 0106 0100 06e1 ce64 2c70 b902 0001 0103 0005 6708 9aa3 0004 0001 b50a 0001 fc0b 0001 e50c 0001 0a0d 0002 010b 0e00 0202 2c0f 0002 0c0e 0000 0103 0100 06e1 ce64 2c70 b902 0001 0103 0005 6708 9aa4 0004 0001 be0a 0001 000b 0002 0c0e 0c00 0218 400d 0004 0001 423b 0e00 0400 0284 68";
-// console.log(handlePayload(bytes,0,0));
+// var bytes = "ef30 a0d9 1e5d 4026 6301 7300 0001 0a01 0006 c69b 1ecf 1093 0200 0101 0300 0567 db74 d500 0400 01ce 0500 1f1e 1604 eb01 95b1 41e0 b300 3e2b 4617 d232 28dd ac2d a718 abb8 c671 5f15 85d7 0000 010a 0100 06f8 4477 1d61 a702 0001 0103 0005 67db 74d5 0004 0001 c705 001b 0201 0603 03e1 ff13 ff52 4252 4205 0005 14e6 6400 2866 0000 0000 0600 0001 0a01 0006 6cfd 2276 f04f 0200 0101 0300 0567 db74 d500 0400 01bf 0500 1b02 0106 0303 e1ff 13ff 5242 5242 0500 0513 665a 0000 0000 0000 0003 0000 0108 0100 06f8 4477 4d42 5202 0001 0103 0005 67db 74d5 0004 0001 c105 001c 0201 0618 1601 ea80 0100 0000 0000 0000 0000 00ff ffff ff0d 2c00 0001 0600 0807 094d 4b20 5461 6700 0001 0a01 0006 a4ac 0f6f 6ef7 0200 0101 0300 0567 db74 d500 0400 01bb 0500 1802 0100 1416 eefd 0010 0001 b9c0 6e0f aca4 025a 4141 4603 0100 0001 0a01 0006 d430 e2d5 5ba2 0200 0100 0300 0567 db74 d500 0400 01e6 0500 1f1e ff0d 0004 1001 a142 8589 2f61 accc 2745 67f7 db34 c403 8e5c 0baa 9730 56e6 ";
+// console.log(handlePayload(bytes, 0, 0));
