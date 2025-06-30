@@ -352,7 +352,7 @@ function parseTime(deviceDataIndex, deviceDataLength, deviceDataArray, data) {
         if (paramTag == 0) {
             currentTime.timestamp = parseHexStrArraytoInt(deviceDataArray.slice(deviceDataIndex, deviceDataIndex + paramLength));
         } else if (paramTag == 1) {
-            currentTime.timezone = signedHexToInt(bytesToHexString(deviceDataArray, deviceDataIndex, 1));
+            currentTime.timezone = signedHexToInt(bytesToHexString(deviceDataArray, deviceDataIndex, 1)) / 2;
             currentTime.timeStr = parse_time(currentTime.timestamp, currentTime.timezone);
         }
         deviceDataIndex += paramLength;
@@ -1704,7 +1704,7 @@ function parseScanDevices(deviceDataIndex, deviceDataLength, deviceDataArray, da
             deviceDataIndex += 2;
             deviceItem.timestamp = parseHexStrArraytoInt(deviceDataArray.slice(deviceDataIndex, deviceDataIndex + 4));
             deviceDataIndex += 4;
-            deviceItem.timezone = signedHexToInt(bytesToHexString(deviceDataArray, deviceDataIndex, 1));
+            deviceItem.timezone = signedHexToInt(bytesToHexString(deviceDataArray, deviceDataIndex, 1)) / 2;
             deviceDataIndex++;
             deviceItem.current_time = parse_time(deviceItem.timestamp, deviceItem.timezone);
         } else if (paramTag == 0x04) {
