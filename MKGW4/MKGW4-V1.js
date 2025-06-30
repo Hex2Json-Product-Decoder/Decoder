@@ -2068,6 +2068,16 @@ function signedHexToInt(hexStr) {
     return twoStr;
 }
 
+function bytesToHexString(bytes, start, len) {
+    var char = [];
+    for (var i = 0; i < len; i++) {
+        var data = bytes[start + i].toString(16);
+        var dataHexStr = ("0x" + data) < 0x10 ? ("0" + data) : data;
+        char.push(dataHexStr);
+    }
+    return char.join("");
+}
+
 function hexStrToString(value) {
     let array = []
     let arrLen = value.length

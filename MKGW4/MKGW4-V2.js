@@ -2372,6 +2372,16 @@ function hexStrToString(value) {
     return array.join("")
 }
 
+function bytesToHexString(bytes, start, len) {
+    var char = [];
+    for (var i = 0; i < len; i++) {
+        var data = bytes[start + i].toString(16);
+        var dataHexStr = ("0x" + data) < 0x10 ? ("0" + data) : data;
+        char.push(dataHexStr);
+    }
+    return char.join("");
+}
+
 /**
  * @description: 
  * 将value(payload)转为hex字符串数组并返回
