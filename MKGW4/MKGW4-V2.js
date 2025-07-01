@@ -334,9 +334,9 @@ function parseDevStatus(deviceDataIndex, deviceDataLength, deviceDataArray, data
             deviceStatus.battVoltage = parseHexStrArraytoInt(deviceDataArray.slice(deviceDataIndex, deviceDataIndex + paramLength)) + "mV";
         } else if (paramTag == 4) {
             var axis_data_array = deviceDataArray.slice(deviceDataIndex, deviceDataIndex + paramLength);
-            deviceStatus.axisDataX = axis_data_array.slice(0, 2).join("") + "mg";
-            deviceStatus.axisDataY = axis_data_array.slice(2, 4).join("") + "mg";
-            deviceStatus.axisDataZ = axis_data_array.slice(4, 6).join("") + "mg";
+            deviceStatus.axisDataX = signedHexToInt(axis_data_array.slice(0, 2).join("")) + "mg";
+            deviceStatus.axisDataY = signedHexToInt(axis_data_array.slice(2, 4).join("")) + "mg";
+            deviceStatus.axisDataZ = signedHexToInt(axis_data_array.slice(4, 6).join("")) + "mg";
         } else if (paramTag == 5) {
             deviceStatus.accStatus = parseInt(deviceDataArray[deviceDataIndex], 16);
         } else if (paramTag == 6) {
@@ -2160,9 +2160,9 @@ function parseBXPACC(deviceItem, paramTag, deviceDataArray, deviceDataIndex, par
         deviceItem.motionThreshold = parseInt(deviceDataArray[deviceDataIndex], 16) * 0.1 + "g";
     } else if (paramTag == 0x10) {
         var axis_data_array = deviceDataArray.slice(deviceDataIndex, deviceDataIndex + paramLength);
-        deviceItem.axisDataX = axis_data_array[0] + "mg";
-        deviceItem.axisDataY = axis_data_array[1] + "mg";
-        deviceItem.axisDataZ = axis_data_array[2] + "mg";
+        deviceItem.axisDataX = signedHexToInt(axis_data_array.slice(0, 2).join("")) + "mg";
+        deviceItem.axisDataY = signedHexToInt(axis_data_array.slice(0, 2).join("")) + "mg";
+        deviceItem.axisDataZ = signedHexToInt(axis_data_array.slice(0, 2).join("")) + "mg";
     } else if (paramTag == 0x11) {
         deviceItem.battVoltage = parseHexStrArraytoInt(deviceDataArray.slice(deviceDataIndex, deviceDataIndex + paramLength)) + "mV";
     }
@@ -2204,9 +2204,9 @@ function parseBXPButton(deviceItem, paramTag, deviceDataArray, deviceDataIndex, 
         deviceItem.motionThreshold = parseInt(deviceDataArray[deviceDataIndex], 16) * 0.1 + "g";
     } else if (paramTag == 0x12) {
         var axis_data_array = deviceDataArray.slice(deviceDataIndex, deviceDataIndex + paramLength);
-        deviceItem.axisDataX = axis_data_array[0] + "mg";
-        deviceItem.axisDataY = axis_data_array[1] + "mg";
-        deviceItem.axisDataZ = axis_data_array[2] + "mg";
+        deviceItem.axisDataX = signedHexToInt(axis_data_array.slice(0, 2).join("")) + "mg";
+        deviceItem.axisDataY = signedHexToInt(axis_data_array.slice(0, 2).join("")) + "mg";
+        deviceItem.axisDataZ = signedHexToInt(axis_data_array.slice(0, 2).join("")) + "mg";
     } else if (paramTag == 0x13) {
         deviceItem.temperature = Number(signedHexToInt(deviceDataArray.slice(deviceDataIndex, deviceDataIndex + paramLength).join("")) * 0.25).toFixed(1) + "℃";
     } else if (paramTag == 0x14) {
@@ -2229,9 +2229,9 @@ function parseBXPTag(deviceItem, paramTag, deviceDataArray, deviceDataIndex, par
         deviceItem.motionTriggerEventCount = parseHexStrArraytoInt(deviceDataArray.slice(deviceDataIndex, deviceDataIndex + paramLength));
     } else if (paramTag == 0x0D) {
         var axis_data_array = deviceDataArray.slice(deviceDataIndex, deviceDataIndex + paramLength);
-        deviceItem.axisDataX = axis_data_array[0] + "mg";
-        deviceItem.axisDataY = axis_data_array[1] + "mg";
-        deviceItem.axisDataZ = axis_data_array[2] + "mg";
+        deviceItem.axisDataX = signedHexToInt(axis_data_array.slice(0, 2).join("")) + "mg";
+        deviceItem.axisDataY = signedHexToInt(axis_data_array.slice(0, 2).join("")) + "mg";
+        deviceItem.axisDataZ = signedHexToInt(axis_data_array.slice(0, 2).join("")) + "mg";
     } else if (paramTag == 0x0E) {
         deviceItem.battVoltage = parseHexStrArraytoInt(deviceDataArray.slice(deviceDataIndex, deviceDataIndex + paramLength)) + "mV";
     } else if (paramTag == 0x0F) {
@@ -2313,9 +2313,9 @@ function parseBXPS(deviceItem, paramTag, deviceDataArray, deviceDataIndex, param
         deviceItem.motionTriggerEventCount = parseHexStrArraytoInt(deviceDataArray.slice(deviceDataIndex, deviceDataIndex + paramLength));
     } else if (paramTag == 0x0D) {
         var axis_data_array = deviceDataArray.slice(deviceDataIndex, deviceDataIndex + paramLength);
-        deviceItem.axisDataX = axis_data_array[0] + "mg";
-        deviceItem.axisDataY = axis_data_array[1] + "mg";
-        deviceItem.axisDataZ = axis_data_array[2] + "mg";
+        deviceItem.axisDataX = signedHexToInt(axis_data_array.slice(0, 2).join("")) + "mg";
+        deviceItem.axisDataY = signedHexToInt(axis_data_array.slice(0, 2).join("")) + "mg";
+        deviceItem.axisDataZ = signedHexToInt(axis_data_array.slice(0, 2).join("")) + "mg";
     } else if (paramTag == 0x0E) {
         deviceItem.battVoltage = parseHexStrArraytoInt(deviceDataArray.slice(deviceDataIndex, deviceDataIndex + paramLength)) + "mV";
     } else if (paramTag == 0x0F) {

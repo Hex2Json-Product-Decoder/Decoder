@@ -292,9 +292,9 @@ function parseDevStatus(deviceDataIndex, deviceDataLength, deviceDataArray, data
             deviceStatus.battVoltage = parseHexStrArraytoInt(deviceDataArray.slice(deviceDataIndex, deviceDataIndex + paramLength)) + "mV";
         } else if (paramTag == 4) {
             var axis_data_array = deviceDataArray.slice(deviceDataIndex, deviceDataIndex + paramLength);
-            deviceStatus.axisDataX = axis_data_array.slice(0, 2).join("") + "mg";
-            deviceStatus.axisDataY = axis_data_array.slice(2, 4).join("") + "mg";
-            deviceStatus.axisDataZ = axis_data_array.slice(4, 6).join("") + "mg";
+            deviceStatus.axisDataX = signedHexToInt(axis_data_array.slice(0, 2).join("")) + "mg";
+            deviceStatus.axisDataY = signedHexToInt(axis_data_array.slice(2, 4).join("")) + "mg";
+            deviceStatus.axisDataZ = signedHexToInt(axis_data_array.slice(4, 6).join("")) + "mg";
         } else if (paramTag == 5) {
             deviceStatus.accStatus = parseInt(deviceDataArray[deviceDataIndex], 16);
         } else if (paramTag == 6) {
@@ -1658,8 +1658,8 @@ function parseFixData(deviceDataIndex, deviceDataLength, deviceDataArray, data) 
             fixData.longitude = Number(signedHexToInt(deviceDataArray.slice(deviceDataIndex, deviceDataIndex + paramLength - 4).join("")) * 0.0000001).toFixed(7);
             fixData.latitude = Number(signedHexToInt(deviceDataArray.slice(deviceDataIndex + 4, deviceDataIndex + paramLength).join("")) * 0.0000001).toFixed(7);
         } else if (paramTag == 4) {
-            fixData.tac_lac = parseHexStrArraytoInt(deviceDataArray.slice(deviceDataIndex, deviceDataIndex + paramLength)) & 0xFFFF;
-            fixData.ci = (parseHexStrArraytoInt(deviceDataArray.slice(deviceDataIndex, deviceDataIndex + paramLength)) >> 16) & 0xFFFFFFFF;
+            fixData.tac_lac = deviceDataArray.slice(deviceDataIndex, deviceDataIndex + 2).join("");
+            fixData.ci = deviceDataArray.slice(deviceDataIndex + 2, deviceDataIndex + paramLength).join("");
         } else if (paramTag == 5) {
             fixData.hdop = Number(parseInt(deviceDataArray[deviceDataIndex], 16) * 0.1).toFixed(1);
         }
@@ -1900,9 +1900,9 @@ function parseBXPACC(deviceItem, paramTag, deviceDataArray, deviceDataIndex, par
         deviceItem.motionThreshold = parseInt(deviceDataArray[deviceDataIndex], 16) * 0.1 + "g";
     } else if (paramTag == 0x10) {
         var axis_data_array = deviceDataArray.slice(deviceDataIndex, deviceDataIndex + paramLength);
-        deviceItem.axisDataX = axis_data_array[0] + "mg";
-        deviceItem.axisDataY = axis_data_array[1] + "mg";
-        deviceItem.axisDataZ = axis_data_array[2] + "mg";
+        deviceItem.axisDataX = signedHexToInt(axis_data_array.slice(0, 2).join("")) + "mg";
+        deviceItem.axisDataY = signedHexToInt(axis_data_array.slice(2, 4).join("")) + "mg";
+        deviceItem.axisDataZ = signedHexToInt(axis_data_array.slice(4, 8).join("")) + "mg";
     } else if (paramTag == 0x11) {
         deviceItem.battVoltage = parseHexStrArraytoInt(deviceDataArray.slice(deviceDataIndex, deviceDataIndex + paramLength)) + "mV";
     }
@@ -1944,9 +1944,9 @@ function parseBXPButton(deviceItem, paramTag, deviceDataArray, deviceDataIndex, 
         deviceItem.motionThreshold = parseInt(deviceDataArray[deviceDataIndex], 16) * 0.1 + "g";
     } else if (paramTag == 0x12) {
         var axis_data_array = deviceDataArray.slice(deviceDataIndex, deviceDataIndex + paramLength);
-        deviceItem.axisDataX = axis_data_array[0] + "mg";
-        deviceItem.axisDataY = axis_data_array[1] + "mg";
-        deviceItem.axisDataZ = axis_data_array[2] + "mg";
+        deviceItem.axisDataX = signedHexToInt(axis_data_array.slice(0, 2).join("")) + "mg";
+        deviceItem.axisDataY = signedHexToInt(axis_data_array.slice(2, 4).join("")) + "mg";
+        deviceItem.axisDataZ = signedHexToInt(axis_data_array.slice(4, 8).join("")) + "mg";
     } else if (paramTag == 0x13) {
         deviceItem.temperature = Number(signedHexToInt(deviceDataArray.slice(deviceDataIndex, deviceDataIndex + paramLength).join("")) * 0.25).toFixed(1) + "℃";
     } else if (paramTag == 0x14) {
@@ -1969,9 +1969,9 @@ function parseBXPTag(deviceItem, paramTag, deviceDataArray, deviceDataIndex, par
         deviceItem.motionTriggerEventCount = parseHexStrArraytoInt(deviceDataArray.slice(deviceDataIndex, deviceDataIndex + paramLength));
     } else if (paramTag == 0x0D) {
         var axis_data_array = deviceDataArray.slice(deviceDataIndex, deviceDataIndex + paramLength);
-        deviceItem.axisDataX = axis_data_array[0] + "mg";
-        deviceItem.axisDataY = axis_data_array[1] + "mg";
-        deviceItem.axisDataZ = axis_data_array[2] + "mg";
+        deviceItem.axisDataX = signedHexToInt(axis_data_array.slice(0, 2).join("")) + "mg";
+        deviceItem.axisDataY = signedHexToInt(axis_data_array.slice(2, 4).join("")) + "mg";
+        deviceItem.axisDataZ = signedHexToInt(axis_data_array.slice(4, 8).join("")) + "mg";
     } else if (paramTag == 0x0E) {
         deviceItem.battVoltage = parseHexStrArraytoInt(deviceDataArray.slice(deviceDataIndex, deviceDataIndex + paramLength)) + "mV";
     } else if (paramTag == 0x0F) {
@@ -2169,13 +2169,13 @@ function formatNumber(number) {
 execute(handlePayload)
 
 // function getData(hex) {
-//     var length = hex.length;
-//     var datas = [];
-//     for (var i = 0; i < length; i += 2) {
-//         var start = i;
-//         var end = i + 2;
-//         var data = parseInt("0x" + hex.substring(start, end));
-//         datas.push(data);
+    //     var length = hex.length;
+    //     var datas = [];
+    //     for (var i = 0; i < length; i += 2) {
+        //         var start = i;
+        //         var end = i + 2;
+        //         var data = parseInt("0x" + hex.substring(start, end));
+        //         datas.push(data);
 //     }
 //     return datas;
 // }
