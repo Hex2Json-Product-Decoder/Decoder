@@ -1948,7 +1948,7 @@ function parseBXPButton(deviceItem, paramTag, deviceDataArray, deviceDataIndex, 
         deviceItem.axisDataY = signedHexToInt(axis_data_array.slice(2, 4).join("")) + "mg";
         deviceItem.axisDataZ = signedHexToInt(axis_data_array.slice(4, 8).join("")) + "mg";
     } else if (paramTag == 0x13) {
-        deviceItem.temperature = Number(signedHexToInt(deviceDataArray.slice(deviceDataIndex, deviceDataIndex + paramLength).join("")) * 0.25).toFixed(1) + "℃";
+        deviceItem.temperature = Number(signedHexToInt(deviceDataArray.slice(deviceDataIndex, deviceDataIndex + paramLength).join("")) * 0.1).toFixed(1) + "℃";
     } else if (paramTag == 0x14) {
         deviceItem.rangingData = signedHexToInt(deviceDataArray[deviceDataIndex]);
     } else if (paramTag == 0x15) {
