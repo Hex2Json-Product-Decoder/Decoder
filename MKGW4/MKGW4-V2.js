@@ -2155,14 +2155,17 @@ function parseBXPACC(deviceItem, paramTag, deviceDataArray, deviceDataIndex, par
     } else if (paramTag == 0x0D) {
         deviceItem.samplingRate = samplingRateArray[parseInt(deviceDataArray[deviceDataIndex], 16)];
     } else if (paramTag == 0x0E) {
-        deviceItem.fullScale = fullScaleArray[parseInt(deviceDataArray[deviceDataIndex], 16)];
+        deviceItem.fullScaleIndex = parseInt(deviceDataArray[deviceDataIndex], 16);
+        deviceItem.fullScale = fullScaleArray[deviceItem.fullScaleIndex];
     } else if (paramTag == 0x0F) {
         deviceItem.motionThreshold = parseInt(deviceDataArray[deviceDataIndex], 16) * 0.1 + "g";
     } else if (paramTag == 0x10) {
         var axis_data_array = deviceDataArray.slice(deviceDataIndex, deviceDataIndex + paramLength);
-        deviceItem.axisDataX = signedHexToInt(axis_data_array.slice(0, 2).join("")) + "mg";
-        deviceItem.axisDataY = signedHexToInt(axis_data_array.slice(0, 2).join("")) + "mg";
-        deviceItem.axisDataZ = signedHexToInt(axis_data_array.slice(0, 2).join("")) + "mg";
+        var scaleIndex = deviceItem.fullScaleIndex;
+        var scale = scaleIndex == 3 ? 12 : Math.pow(2, scaleIndex);
+        deviceItem.axisDataX = Math.round((signedHexToInt(axis_data_array.slice(0, 2).join("")) >> 4) * scale) + "mg";
+        deviceItem.axisDataY = Math.round((signedHexToInt(axis_data_array.slice(2, 4).join("")) >> 4) * scale) + "mg";
+        deviceItem.axisDataZ = Math.round((signedHexToInt(axis_data_array.slice(4, 6).join("")) >> 4) * scale) + "mg";
     } else if (paramTag == 0x11) {
         deviceItem.battVoltage = parseHexStrArraytoInt(deviceDataArray.slice(deviceDataIndex, deviceDataIndex + paramLength)) + "mV";
     }
@@ -2205,10 +2208,10 @@ function parseBXPButton(deviceItem, paramTag, deviceDataArray, deviceDataIndex, 
     } else if (paramTag == 0x12) {
         var axis_data_array = deviceDataArray.slice(deviceDataIndex, deviceDataIndex + paramLength);
         deviceItem.axisDataX = signedHexToInt(axis_data_array.slice(0, 2).join("")) + "mg";
-        deviceItem.axisDataY = signedHexToInt(axis_data_array.slice(0, 2).join("")) + "mg";
-        deviceItem.axisDataZ = signedHexToInt(axis_data_array.slice(0, 2).join("")) + "mg";
+        deviceItem.axisDataY = signedHexToInt(axis_data_array.slice(2, 4).join("")) + "mg";
+        deviceItem.axisDataZ = signedHexToInt(axis_data_array.slice(4, 6).join("")) + "mg";
     } else if (paramTag == 0x13) {
-        deviceItem.temperature = Number(signedHexToInt(deviceDataArray.slice(deviceDataIndex, deviceDataIndex + paramLength).join("")) * 0.25).toFixed(1) + "℃";
+        deviceItem.temperature = Number(signedHexToInt(deviceDataArray.slice(deviceDataIndex, deviceDataIndex + paramLength).join("")) * 0.1).toFixed(1) + "℃";
     } else if (paramTag == 0x14) {
         deviceItem.rangingData = signedHexToInt(deviceDataArray[deviceDataIndex]);
     } else if (paramTag == 0x15) {
@@ -2230,8 +2233,8 @@ function parseBXPTag(deviceItem, paramTag, deviceDataArray, deviceDataIndex, par
     } else if (paramTag == 0x0D) {
         var axis_data_array = deviceDataArray.slice(deviceDataIndex, deviceDataIndex + paramLength);
         deviceItem.axisDataX = signedHexToInt(axis_data_array.slice(0, 2).join("")) + "mg";
-        deviceItem.axisDataY = signedHexToInt(axis_data_array.slice(0, 2).join("")) + "mg";
-        deviceItem.axisDataZ = signedHexToInt(axis_data_array.slice(0, 2).join("")) + "mg";
+        deviceItem.axisDataY = signedHexToInt(axis_data_array.slice(2, 4).join("")) + "mg";
+        deviceItem.axisDataZ = signedHexToInt(axis_data_array.slice(4, 6).join("")) + "mg";
     } else if (paramTag == 0x0E) {
         deviceItem.battVoltage = parseHexStrArraytoInt(deviceDataArray.slice(deviceDataIndex, deviceDataIndex + paramLength)) + "mV";
     } else if (paramTag == 0x0F) {
@@ -2314,8 +2317,8 @@ function parseBXPS(deviceItem, paramTag, deviceDataArray, deviceDataIndex, param
     } else if (paramTag == 0x0D) {
         var axis_data_array = deviceDataArray.slice(deviceDataIndex, deviceDataIndex + paramLength);
         deviceItem.axisDataX = signedHexToInt(axis_data_array.slice(0, 2).join("")) + "mg";
-        deviceItem.axisDataY = signedHexToInt(axis_data_array.slice(0, 2).join("")) + "mg";
-        deviceItem.axisDataZ = signedHexToInt(axis_data_array.slice(0, 2).join("")) + "mg";
+        deviceItem.axisDataY = signedHexToInt(axis_data_array.slice(2, 4).join("")) + "mg";
+        deviceItem.axisDataZ = signedHexToInt(axis_data_array.slice(4, 6).join("")) + "mg";
     } else if (paramTag == 0x0E) {
         deviceItem.battVoltage = parseHexStrArraytoInt(deviceDataArray.slice(deviceDataIndex, deviceDataIndex + paramLength)) + "mV";
     } else if (paramTag == 0x0F) {
