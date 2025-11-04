@@ -35,6 +35,7 @@ var positionFixResultArray = ["GPS fix successful"
     ,"Fix failed caused by PDOP limited"
     ,"LBS fix failed"];
 var motionModeArray = ["stationary in motion mode","start movement","in movement","end of movement"];
+var nonanBeaconTriggerStatusArrar = ["No alarm","Cut-off alarm","Button alarm","Button alarm and cut-off alarm"];
 
 function handlePayload(value, msgType, index) {
     const hexStrArray = toHexStrArray(value);
@@ -2060,6 +2061,8 @@ function parseScanDevices(deviceDataIndex, deviceDataLength, deviceDataArray, da
                 parseOther(deviceItem, paramTag, deviceDataArray, deviceDataIndex, paramLength);
             } else if (deviceItem.typeCode == 12) {
                 parseBXPS(deviceItem, paramTag, deviceDataArray, deviceDataIndex, paramLength);
+            } else if (deviceItem.typeCode == 13) {
+                parseNanoBeacon(deviceItem, paramTag, deviceDataArray, deviceDataIndex, paramLength);
             }
             deviceDataIndex += paramLength;
         } else if (paramTag == 0xf0 || paramTag == 0xf1) {
@@ -2329,6 +2332,25 @@ function parseBXPS(deviceItem, paramTag, deviceDataArray, deviceDataIndex, param
         deviceItem.temperature = Number(signedHexToInt(deviceDataArray.slice(deviceDataIndex, deviceDataIndex + paramLength).join("")) * 0.1).toFixed(1) + "℃";
     } else if (paramTag == 0x12) {
         deviceItem.humidity = Number(signedHexToInt(deviceDataArray.slice(deviceDataIndex, deviceDataIndex + paramLength).join("")) * 0.1).toFixed(1) + "%";
+    }
+}
+
+function parseNanoBeacon(deviceItem, paramTag, deviceDataArray, deviceDataIndex, paramLength) {
+    if (paramTag == 0x0A) {
+        deviceItem.devName = hexStrToString(deviceDataArray.slice(deviceDataIndex, deviceDataIndex + paramLength));
+    } else if (paramTag == 0x0B) {
+        deviceItem.manufactureId = deviceDataArray.slice(deviceDataIndex, deviceDataIndex + paramLength).join("");
+    } else if (paramTag == 0x0C) {
+        deviceItem.advType = parseInt(deviceDataArray[deviceDataIndex], 16) == 0 ? "normal" : "trigger";
+    } else if (paramTag == 0x0D) {
+        deviceItem.battVoltage = parseHexStrArraytoInt(deviceDataArray.slice(deviceDataIndex, deviceDataIndex + paramLength)) + "mV";
+    } else if (paramTag == 0x0E) {
+        deviceItem.temperature = Number(signedHexToInt(deviceDataArray.slice(deviceDataIndex, deviceDataIndex + paramLength).join("")) * 0.1).toFixed(1) + "℃";
+    } else if (paramTag == 0x0F) {
+        deviceItem.secCnt = parseHexStrArraytoInt(deviceDataArray.slice(deviceDataIndex, deviceDataIndex + paramLength));
+    } else if (paramTag == 0x10) {
+        var status = parseInt(deviceDataArray[deviceDataIndex], 16);
+        deviceItem.tagId = nonanBeaconTriggerStatusArrar[status];
     }
 }
 
